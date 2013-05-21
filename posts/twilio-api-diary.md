@@ -4,8 +4,8 @@ date: '2013-05-20'
 description:
 categories:
 tags: 
--interview
--api design
+- interview
+- api design
 ---
 
 [Twilio](http://www.twilio.com/) makes telephony dead simple for developers.  A developer should be able to do cool things with their API, like sending text messages and setting up conference calls in under 5 minutes.  Such a company must live or die on API design.
@@ -26,7 +26,7 @@ I was very fortunate to speak with [Joel Franusic](https://twitter.com/jf) to le
 
 Example tweets:
 
-> If any #nodejs #twilio guys could help debug https://gist.github.com/1314454  and why it's saying not authenticated when I do the request
+> If any #nodejs #twilio guys could help debug https://gist.github.com/1314454 and why it's saying not authenticated when I do the request
 
 > .@twilio Why can't I send an SMS with the words "need to cancel" in it? I keep getting this error: http://www.twilio.com/docs/errors/21618 #janky
 
@@ -34,7 +34,7 @@ Example tweets:
 
 #### API Usage data
 
-API usage data is used internally to refactor API design and understand their users.  For example, one feature was found to consume too much bandwidth by design. Developers where using the API to request information about their own data usage (kinda meta).  This was changed to so that they instead register a callback to know when they are approaching a limit.
+API usage data is used internally to refactor API design and understand their users.  For example, one feature was found to be overly exploited by developers and as a result took too much bandwidth. Developers where using the API to request information about their own data usage (kinda meta).  This was changed to so that they instead [register a callback](http://www.twilio.com/docs/api/rest/usage-triggers) to know when they are approaching a limit.
 
 #### Community building
 
@@ -44,12 +44,12 @@ Hackathons, meetups, and live demos are the preferred way to engage with develop
 
 Developers are often well off and are not always inspired by monetary rewards.  Prizes and contests are not commonly used, but if a prize is given away, items encouraging learning and hacking are used, such as Knuth books or a Raspberry Pi.
 
-Closed betas are also used, to get early feedback from some of the heaviest (or most vocal) users.  For example, [Patrick McKenzie](http://www.kalzumeus.com/2011/12/19/productizing-twilio-applications/) was instrumental in proposing and evaluating a solution for automated testing of twilio apps.
+Closed betas are also used, to get early feedback from some of the heaviest (or most vocal) users.  For example, [Patrick McKenzie](http://www.kalzumeus.com/2011/12/19/productizing-twilio-applications/) was instrumental in calling for a solution for automated testing of twilio apps.  A closed beta was able to iron out many of the details and work for adding [this feature](http://www.twilio.com/docs/api/rest/test-credentials).
 
 #### Company culture
 
 Understanding developers is also ingrained into the company culture.
-New dev hires spend the first two weeks [handling support tickets](http://www.zendesk.com/blog/new-employees-answer-support-tickets).  Non-devs earn street cred by demoing their own twilio app, earning the right to proudly wear the company's red jacket.
+All new hires spend the first two weeks [handling support tickets](http://www.zendesk.com/blog/new-employees-answer-support-tickets).  Any employee (including non-devs) can earn street cred by demoing their own twilio app, earning the right to proudly wear the company's red track jacket.
 
 
 ## Conclusion
