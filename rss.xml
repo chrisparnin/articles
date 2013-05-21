@@ -3,7 +3,7 @@
   <channel>
     <title>Chris Parnin</title>
     <link>http://chrisparnin.github.io</link>
-    <pubDate>2013-05-21 02:43:32 -0400</pubDate>
+    <pubDate>2013-05-21 02:48:25 -0400</pubDate>
     <item>
       <title>Api Diaries - Twilio</title>
       <link>http://chrisparnin.github.io/articles/2013/05/api-diaries-twilio</link>
@@ -40,7 +40,7 @@
 
 &lt;h4 id="toc_2"&gt;API Usage data&lt;/h4&gt;
 
-&lt;p&gt;API usage data is used internally to refactor API design and understand their users.  For example, one feature was found to be overly exploited by developers and as a result took too much bandwidth. Developers where using the API to request information about their own data usage (kinda meta).  This was changed to so that they instead &lt;a href="http://www.twilio.com/docs/api/rest/usage-triggers"&gt;register a callback&lt;/a&gt; to know when they are approaching a limit.&lt;/p&gt;
+&lt;p&gt;API usage data is used internally to refactor API design and understand their users.  For example, one feature was found to be overly exploited by developers and as a result took too much bandwidth. Developers were using the API to request information about their own data usage (kinda meta).  This was changed to so that they instead &lt;a href="http://www.twilio.com/docs/api/rest/usage-triggers"&gt;register a callback&lt;/a&gt; to know when they are approaching a limit.&lt;/p&gt;
 
 &lt;h4 id="toc_3"&gt;Community building&lt;/h4&gt;
 
