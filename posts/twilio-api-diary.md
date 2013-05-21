@@ -30,7 +30,7 @@ Example tweets:
 
 > .@twilio Why can't I send an SMS with the words "need to cancel" in it? I keep getting this error: http://www.twilio.com/docs/errors/21618 #janky
 
-**There are some challenges with doing this**.  Currently, these channels are manually monitored by the support team.  Although all channels are attended, the issues and resolutions are not always curated and are often handled in different ways.  At the moment, product review meetings and decisions of customer feedback is based on the "semi-intuitive" recollection of issues, more often than on "hard-data".
+**There are some challenges with doing this**.  Currently, these channels are manually monitored by the support team.  Although all channels are attended, the issues and resolutions are not always curated and are often handled in different ways.  At the moment, product review meetings and decisions on customer feedback is based on the "semi-intuitive" recollection of issues, more often than on "hard-data".
 
 #### API Usage data
 
