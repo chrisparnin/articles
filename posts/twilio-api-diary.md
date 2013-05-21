@@ -34,7 +34,7 @@ Example tweets:
 
 #### API Usage data
 
-API usage data is used internally to refactor API design and understand their users.  For example, one feature was found to be overly exploited by developers and as a result took too much bandwidth. Developers where using the API to request information about their own data usage (kinda meta).  This was changed to so that they instead [register a callback](http://www.twilio.com/docs/api/rest/usage-triggers) to know when they are approaching a limit.
+API usage data is used internally to refactor API design and understand their users.  For example, one feature was found to be overly exploited by developers and as a result took too much bandwidth. Developers were using the API to request information about their own data usage (kinda meta).  This was changed to so that they instead [register a callback](http://www.twilio.com/docs/api/rest/usage-triggers) to know when they are approaching a limit.
 
 #### Community building
 
