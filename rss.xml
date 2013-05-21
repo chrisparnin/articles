@@ -3,7 +3,7 @@
   <channel>
     <title>Chris Parnin</title>
     <link>http://chrisparnin.github.io</link>
-    <pubDate>2013-05-20 20:21:50 -0400</pubDate>
+    <pubDate>2013-05-21 02:33:34 -0400</pubDate>
     <item>
       <title>Api Diaries - Twilio</title>
       <link>http://chrisparnin.github.io/articles/2013/05/api-diaries-twilio</link>
@@ -31,7 +31,7 @@
 &lt;p&gt;Example tweets:&lt;/p&gt;
 
 &lt;blockquote&gt;
-&lt;p&gt;If any #nodejs #twilio guys could help debug &lt;a href="https://gist.github.com/1314454"&gt;https://gist.github.com/1314454&lt;/a&gt;  and why it&amp;#39;s saying not authenticated when I do the request&lt;/p&gt;
+&lt;p&gt;If any #nodejs #twilio guys could help debug &lt;a href="https://gist.github.com/1314454"&gt;https://gist.github.com/1314454&lt;/a&gt; and why it&amp;#39;s saying not authenticated when I do the request&lt;/p&gt;
 
 &lt;p&gt;.@twilio Why can&amp;#39;t I send an SMS with the words &amp;quot;need to cancel&amp;quot; in it? I keep getting this error: &lt;a href="http://www.twilio.com/docs/errors/21618"&gt;http://www.twilio.com/docs/errors/21618&lt;/a&gt; #janky&lt;/p&gt;
 &lt;/blockquote&gt;
@@ -40,7 +40,7 @@
 
 &lt;h4 id="toc_2"&gt;API Usage data&lt;/h4&gt;
 
-&lt;p&gt;API usage data is used internally to refactor API design and understand their users.  For example, one feature was found to consume too much bandwidth by design. Developers where using the API to request information about their own data usage (kinda meta).  This was changed to so that they instead register a callback to know when they are approaching a limit.&lt;/p&gt;
+&lt;p&gt;API usage data is used internally to refactor API design and understand their users.  For example, one feature was found to be overly exploited by developers and as a result took too much bandwidth. Developers where using the API to request information about their own data usage (kinda meta).  This was changed to so that they instead &lt;a href="http://www.twilio.com/docs/api/rest/usage-triggers"&gt;register a callback&lt;/a&gt; to know when they are approaching a limit.&lt;/p&gt;
 
 &lt;h4 id="toc_3"&gt;Community building&lt;/h4&gt;
 
@@ -52,12 +52,12 @@
 
 &lt;p&gt;Developers are often well off and are not always inspired by monetary rewards.  Prizes and contests are not commonly used, but if a prize is given away, items encouraging learning and hacking are used, such as Knuth books or a Raspberry Pi.&lt;/p&gt;
 
-&lt;p&gt;Closed betas are also used, to get early feedback from some of the heaviest (or most vocal) users.  For example, &lt;a href="http://www.kalzumeus.com/2011/12/19/productizing-twilio-applications/"&gt;Patrick McKenzie&lt;/a&gt; was instrumental in proposing and evaluating a solution for automated testing of twilio apps.&lt;/p&gt;
+&lt;p&gt;Closed betas are also used, to get early feedback from some of the heaviest (or most vocal) users.  For example, &lt;a href="http://www.kalzumeus.com/2011/12/19/productizing-twilio-applications/"&gt;Patrick McKenzie&lt;/a&gt; was instrumental in calling for a solution for automated testing of twilio apps.  A closed beta was able to iron out many of the details and work for adding &lt;a href="http://www.twilio.com/docs/api/rest/test-credentials"&gt;this feature&lt;/a&gt;.&lt;/p&gt;
 
 &lt;h4 id="toc_4"&gt;Company culture&lt;/h4&gt;
 
 &lt;p&gt;Understanding developers is also ingrained into the company culture.
-New dev hires spend the first two weeks &lt;a href="http://www.zendesk.com/blog/new-employees-answer-support-tickets"&gt;handling support tickets&lt;/a&gt;.  Non-devs earn street cred by demoing their own twilio app, earning the right to proudly wear the company&amp;#39;s red jacket.&lt;/p&gt;
+All new hires spend the first two weeks &lt;a href="http://www.zendesk.com/blog/new-employees-answer-support-tickets"&gt;handling support tickets&lt;/a&gt;.  Any employee (including non-devs) can earn street cred by demoing their own twilio app, earning the right to proudly wear the company&amp;#39;s red track jacket.&lt;/p&gt;
 
 &lt;h2 id="toc_5"&gt;Conclusion&lt;/h2&gt;
 
