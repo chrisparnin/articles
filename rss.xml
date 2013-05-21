@@ -3,7 +3,7 @@
   <channel>
     <title>Chris Parnin</title>
     <link>http://chrisparnin.github.io</link>
-    <pubDate>2013-05-21 02:33:34 -0400</pubDate>
+    <pubDate>2013-05-21 02:43:32 -0400</pubDate>
     <item>
       <title>Api Diaries - Twilio</title>
       <link>http://chrisparnin.github.io/articles/2013/05/api-diaries-twilio</link>
@@ -36,7 +36,7 @@
 &lt;p&gt;.@twilio Why can&amp;#39;t I send an SMS with the words &amp;quot;need to cancel&amp;quot; in it? I keep getting this error: &lt;a href="http://www.twilio.com/docs/errors/21618"&gt;http://www.twilio.com/docs/errors/21618&lt;/a&gt; #janky&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;p&gt;&lt;strong&gt;There are some challenges with doing this&lt;/strong&gt;.  Currently, these channels are manually monitored by the support team.  Although all channels are attended, the issues and resolutions are not always curated and are often handled in different ways.  At the moment, product review meetings and decisions of customer feedback is based on the &amp;quot;semi-intuitive&amp;quot; recollection of issues, more often than on &amp;quot;hard-data&amp;quot;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;There are some challenges with doing this&lt;/strong&gt;.  Currently, these channels are manually monitored by the support team.  Although all channels are attended, the issues and resolutions are not always curated and are often handled in different ways.  At the moment, product review meetings and decisions on customer feedback is based on the &amp;quot;semi-intuitive&amp;quot; recollection of issues, more often than on &amp;quot;hard-data&amp;quot;.&lt;/p&gt;
 
 &lt;h4 id="toc_2"&gt;API Usage data&lt;/h4&gt;
 
