@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Parse git log output in C#</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Chris Parnin">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le styles -->
+    <link href="/articles/assets/twitter/stylesheets/bootstrap.min.css?0.004756523940943502" type="text/css" rel="stylesheet" media="all">
+<link href="/articles/assets/twitter/stylesheets/style.css?0.3206631145859147" type="text/css" rel="stylesheet" media="all">
+<link href="/articles/assets/twitter/widgets/google_prettify/stylesheets/twitter-bootstrap.css?0.9535970658184936" type="text/css" rel="stylesheet" media="all">
+
+    
+
+    <!-- Le fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+  </head>
+
+  <body>
+
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container-narrow">
+          <a class="brand" href="/articles/">Chris Parnin</a>
+          <ul class="nav">
+              
+                <li><a href="/articles/about">About</a></li>
+              
+              
+                <li><a href="/articles/archive">Archive</a></li>
+              
+              
+                <li><a href="/articles/tags">Tags</a></li>
+              
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-narrow">
+
+      <div class="content">
+        <div class="page-header">
+  <h1>Parse git log output in C# </h1>
+</div>
+
+<div class="row-fluid post-full">
+  <div class="span12">
+    <div class="date">
+      <span>2013-09-05</strong>
+    </div>
+    <div class="content">
+      <p>A simple example for parsing the output of git log in pure C#.</p>
+
+<h3 id="toc_0">Getting git log output</h3>
+
+<p>Get output of <code>git log --name-status</code> by specifying path of git repo.</p>
+
+<pre><code>    public static string ListShaWithFiles(string path)
+    {
+        var output = RunProcess(string.Format(&quot; --git-dir={0}/.git --work-tree={1} log --name-status&quot;, path.Replace(&quot;\\&quot;, &quot;/&quot;), path.Replace(&quot;\\&quot;, &quot;/&quot;)));
+        return output;
+    }
+</code></pre>
+
+<p>Helper for getting command line output</p>
+
+<pre><code>    private static string RunProcess(string command)
+    {
+        // Start the child process.
+        Process p = new Process();
+        // Redirect the output stream of the child process.
+        p.StartInfo.UseShellExecute = false;
+        p.StartInfo.RedirectStandardOutput = true;
+        p.StartInfo.FileName = Config.GitExectuable;
+        p.StartInfo.Arguments = command;
+        p.Start();
+        // Read the output stream first and then wait.
+        string output = p.StandardOutput.ReadToEnd();
+        p.WaitForExit();
+        return output;
+    }
+</code></pre>
+
+<h3 id="toc_1">Parse output</h3>
+
+<p>Basic parse loop for parsing a commit.  Will show how to populate next.</p>
+
+<pre><code>        using (var strReader = new StringReader(output))
+        {
+            do
+            {
+                var line = strReader.ReadLine();
+
+                if( line.StartsWith(&quot;commit &quot;) )
+                {
+                }
+
+                if ( StartsWithHeader(line) )
+                {
+                }
+
+                if (string.IsNullOrEmpty(line) )
+                {
+                    // commit message divider
+                }
+
+                if (line.Length &gt; 0 &amp;&amp; line[0] == &#39;\t&#39;)
+                { 
+                    // commit message.
+                }
+
+                if (line.Length &gt; 1 &amp;&amp; Char.IsLetter(line[0]) &amp;&amp; line[1] == &#39;\t&#39;)
+                {
+                    // file status
+                }
+            }
+            while (strReader.Peek() != -1);
+        }
+    }
+</code></pre>
+
+<p>Helper function to help check if a line is a header.</p>
+
+<pre><code>    private bool StartsWithHeader(string line)
+    {
+        if( line.Length &gt; 0 &amp;&amp; char.IsLetter( line[0] ) )
+        {
+            var seq = line.SkipWhile( ch =&gt; Char.IsLetter(ch) &amp;&amp; ch != &#39;:&#39; );
+            return seq.FirstOrDefault() == &#39;:&#39;;
+        }
+        return false;
+    }
+</code></pre>
+
+<h3 id="toc_2">Storing results.</h3>
+
+<p>Class for holding commits </p>
+
+<pre><code>public class GitCommit
+{
+    public GitCommit()
+    {
+        Headers = new Dictionary&lt;string, string&gt;();
+        Files = new List&lt;GitFileStatus&gt;();
+        Message = &quot;&quot;;
+    }
+
+    public Dictionary&lt;string, string&gt; Headers { get; set; }
+    public string Sha { get; set; }
+    public string Message { get; set; }
+    public List&lt;GitFileStatus&gt; Files { get; set; }
+}
+</code></pre>
+
+<p>and File status</p>
+
+<pre><code>public class GitFileStatus
+{
+    public string Status { get; set; }
+    public string File { get; set; }
+}
+</code></pre>
+
+<p>Populating results</p>
+
+<pre><code>        GitCommit commit = null;
+        var commits = new List&lt;GitCommit&gt;();
+        bool processingMessage = false;
+        using (var strReader = new StringReader(output))
+        {
+            do
+            {
+                var line = strReader.ReadLine();
+
+                if( line.StartsWith(&quot;commit &quot;) )
+                {
+                    if (commit != null)
+                        commits.Add(commit);
+                    commit = new GitCommit();
+                    commit.Sha = line.Split(&#39; &#39;)[1];
+                }
+
+                if ( StartsWithHeader(line) )
+                {
+                    var header = line.Split(&#39;:&#39;)[0];
+                    var val = string.Join(&quot;:&quot;,line.Split(&#39;:&#39;).Skip(1)).Trim();
+
+                    // headers
+                    commit.Headers.Add(header, val);
+                }
+
+                if (string.IsNullOrEmpty(line) )
+                {
+                    // commit message divider
+                    processingMessage = !processingMessage;
+                }
+
+                if (line.Length &gt; 0 &amp;&amp; line[0] == &#39;\t&#39;)
+                { 
+                    // commit message.
+                    commit.Message += line;
+                }
+
+                if (line.Length &gt; 1 &amp;&amp; Char.IsLetter(line[0]) &amp;&amp; line[1] == &#39;\t&#39;)
+                {
+                    var status = line.Split(&#39;\t&#39;)[0];
+                    var file = line.Split(&#39;\t&#39;)[1];
+                    commit.Files.Add(new GitFileStatus() { Status = status, File = file } );
+                }
+            }
+            while (strReader.Peek() != -1);
+        }
+        if (commit != null)
+            commits.Add(commit);
+
+        return commits;
+    }
+</code></pre>
+
+<h3 id="toc_3">Run it all and print back results</h3>
+
+<pre><code>    string path = @&quot;C:\DEV\github\Codegrams&quot;;
+    if (args.Length &gt; 0)
+        path = args[0];
+    var output = GitCommands.ListShaWithFiles(path);
+
+    var parser = new ParseGitLog();
+    var commits = parser.Parse(output);
+
+    Console.WriteLine(commits.Count);
+    foreach (var commit in commits)
+    {
+        commit.Print();
+    }
+</code></pre>
+
+<p>Print helper</p>
+
+<pre><code>    public void Print()
+    {
+        Console.WriteLine(&quot;commit &quot; + Sha);
+        foreach (var key in Headers.Keys)
+        {
+            Console.WriteLine(key + &quot;:&quot; + Headers[key]);
+        }
+        Console.WriteLine();
+        Console.WriteLine(Message);
+        Console.WriteLine();
+        foreach (var file in Files)
+        {
+            Console.WriteLine(file.Status + &quot;\t&quot; + file.File);
+        }
+    }
+</code></pre>
+
+    </div>
+    <ul class="tag_box inline">
+      <li><i class="icon-folder-open"></i></li>
+    </ul>
+    <ul class="tag_box inline">
+      <li><i class="icon-tags"></i></li>
+    </ul>
+    <hr>
+    <div class="pagination">
+      <ul>
+          <li class="prev"><a href="/articles/2013/05/api-diaries-twilio" title="Api Diaries - Twilio">&larr; Previous</a></li>
+
+          <li><a href="/articles/archive">Archive</a></li>
+
+          <li class="next disabled"><a>Next &rarr;</a>
+      </ul>
+    </div>
+    <hr>
+    <div id="disqus_thread"></div>
+<script>
+    var disqus_developer = 1;
+    var disqus_shortname = 'chrisparnin-articles'; // required: replace example with your forum shortname
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  </div>
+</div>
+
+
+      </div>
+
+      <hr>
+      <div class="footer">
+        <p>&copy; Chris Parnin 2013
+          with help from <a href="http://ruhoh.com" target="_blank" title="The Definitive Technical Blogging Framework">ruhoh</a>
+          and <a href="http://twitter.github.com/bootstrap/" target="_blank">Twitter Bootstrap</a>
+        </p>
+      </div>
+
+    </div> <!-- /container -->
+
+    <!-- Google Prettify -->
+<script src="http://cdnjs.cloudflare.com/ajax/libs/prettify/188.0.0/prettify.js"></script>
+<script>
+  var pres = document.getElementsByTagName("pre");
+  for (var i=0; i < pres.length; ++i) {
+    pres[i].className = "prettyprint linenums";
+  }
+  prettyPrint();
+</script>
+<!-- end Google Prettify -->
+    <script>
+  var _gaq=[['_setAccount','UA-40288773-1'],['_trackPageview']];
+  (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+  g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
+  s.parentNode.insertBefore(g,s)}(document,'script'));
+</script>
+  </body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Api Diaries - Twilio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Chris Parnin">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le styles -->
+    <link href="/articles/assets/twitter/stylesheets/bootstrap.min.css?0.49445802848671694" type="text/css" rel="stylesheet" media="all">
+<link href="/articles/assets/twitter/stylesheets/style.css?0.38262667844189846" type="text/css" rel="stylesheet" media="all">
+<link href="/articles/assets/twitter/widgets/google_prettify/stylesheets/twitter-bootstrap.css?0.7322105313893208" type="text/css" rel="stylesheet" media="all">
+
+    
+
+    <!-- Le fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+  </head>
+
+  <body>
+
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container-narrow">
+          <a class="brand" href="/articles/">Chris Parnin</a>
+          <ul class="nav">
+              
+                <li><a href="/articles/about">About</a></li>
+              
+              
+                <li><a href="/articles/archive">Archive</a></li>
+              
+              
+                <li><a href="/articles/tags">Tags</a></li>
+              
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-narrow">
+
+      <div class="content">
+        <div class="page-header">
+  <h1>Api Diaries - Twilio </h1>
+</div>
+
+<div class="row-fluid post-full">
+  <div class="span12">
+    <div class="date">
+      <span>2013-05-20</strong>
+    </div>
+    <div class="content">
+      <p><a href="http://www.twilio.com/">Twilio</a> makes telephony dead simple for developers.  A developer should be able to do cool things with their API, like sending text messages and setting up conference calls in under 5 minutes.  Such a company must live or die on API design.</p>
+
+<p>I was very fortunate to speak with <a href="https://twitter.com/jf">Joel Franusic</a> to learn how Twilio engages and understands developers when building their API. The following is a based on our conversation:</p>
+
+<h3 id="toc_0">How do they know how to get Api Design right?</h3>
+
+<h4 id="toc_1">Monitoring channels</h4>
+
+<blockquote>
+<p>&quot;We go where we are talked about&quot;</p>
+</blockquote>
+
+<ul>
+<li><a href="http://forum.twilio.com/twilio">getsatisfaction.com</a></li>
+<li><a href="http://stackoverflow.com/questions/tagged/twilio">Stack Overflow</a></li>
+<li><a href="https://twitter.com/search/realtime?q=%23twilio">twitter</a></li>
+<li><a href="https://www.hnsearch.com/search#request/all&amp;q=twilio">Hacker News</a></li>
+<li>email (lots)</li>
+</ul>
+
+<p>Example tweets:</p>
+
+<blockquote>
+<p>If any #nodejs #twilio guys could help debug <a href="https://gist.github.com/1314454">https://gist.github.com/1314454</a> and why it&#39;s saying not authenticated when I do the request</p>
+
+<p>.@twilio Why can&#39;t I send an SMS with the words &quot;need to cancel&quot; in it? I keep getting this error: <a href="http://www.twilio.com/docs/errors/21618">http://www.twilio.com/docs/errors/21618</a> #janky</p>
+</blockquote>
+
+<p><strong>There are some challenges with doing this</strong>.  Currently, these channels are manually monitored by the support team.  Although all channels are attended, the issues and resolutions are not always curated and are often handled in different ways.  At the moment, product review meetings and decisions on customer feedback is based on the &quot;semi-intuitive&quot; recollection of issues, more often than on &quot;hard-data&quot;.</p>
+
+<h4 id="toc_2">API Usage data</h4>
+
+<p>API usage data is used internally to refactor API design and understand their users.  For example, one feature was found to be overly exploited by developers and as a result took too much bandwidth. Developers were using the API to request information about their own data usage (kinda meta).  This was changed to so that they instead <a href="http://www.twilio.com/docs/api/rest/usage-triggers">register a callback</a> to know when they are approaching a limit.</p>
+
+<h4 id="toc_3">Community building</h4>
+
+<p>Hackathons, meetups, and live demos are the preferred way to engage with developers.  There is still very much footwork in all this.</p>
+
+<blockquote>
+<p>&quot;Prizes are bullshit.&quot;</p>
+</blockquote>
+
+<p>Developers are often well off and are not always inspired by monetary rewards.  Prizes and contests are not commonly used, but if a prize is given away, items encouraging learning and hacking are used, such as Knuth books or a Raspberry Pi.</p>
+
+<p>Closed betas are also used, to get early feedback from some of the heaviest (or most vocal) users.  For example, <a href="http://www.kalzumeus.com/2011/12/19/productizing-twilio-applications/">Patrick McKenzie</a> was instrumental in calling for a solution for automated testing of twilio apps.  A closed beta was able to iron out many of the details and work for adding <a href="http://www.twilio.com/docs/api/rest/test-credentials">this feature</a>.</p>
+
+<h4 id="toc_4">Company culture</h4>
+
+<p>Understanding developers is also ingrained into the company culture.
+All new hires spend the first two weeks <a href="http://www.zendesk.com/blog/new-employees-answer-support-tickets">handling support tickets</a>.  Any employee (including non-devs) can earn street cred by demoing their own twilio app, earning the right to proudly wear the company&#39;s red track jacket.</p>
+
+<h2 id="toc_5">Conclusion</h2>
+
+<p>Companies built on apis must make developers happy.  Understanding developer&#39;s opinions, problems, and usage patterns still involve manual collection, on-the-ground engagement, and ad-hoc analytics.  There are many opportunities to learn and make this space better.</p>
+
+    </div>
+    <ul class="tag_box inline">
+      <li><i class="icon-folder-open"></i></li>
+    </ul>
+    <ul class="tag_box inline">
+      <li><i class="icon-tags"></i></li>
+      <li>
+        <a href="/articles/tags#interview-ref">interview <span>1</span></a>
+      </li>
+      <li>
+        <a href="/articles/tags#api design-ref">api design <span>1</span></a>
+      </li>
+    </ul>
+    <hr>
+    <div class="pagination">
+      <ul>
+          <li class="prev"><a href="/articles/2013/04/why-your-academic-blog-post-is-worth-200-000" title="Why Your Academic Blog Post is Worth $200,000">&larr; Previous</a></li>
+
+          <li><a href="/articles/archive">Archive</a></li>
+
+          <li class="next"><a href="/articles/2013/09/parse-git-log-output-in-c" title="Parse git log output in C#">Next &rarr;</a></li>
+      </ul>
+    </div>
+    <hr>
+    <div id="disqus_thread"></div>
+<script>
+    var disqus_developer = 1;
+    var disqus_shortname = 'chrisparnin-articles'; // required: replace example with your forum shortname
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  </div>
+</div>
+
+
+      </div>
+
+      <hr>
+      <div class="footer">
+        <p>&copy; Chris Parnin 2013
+          with help from <a href="http://ruhoh.com" target="_blank" title="The Definitive Technical Blogging Framework">ruhoh</a>
+          and <a href="http://twitter.github.com/bootstrap/" target="_blank">Twitter Bootstrap</a>
+        </p>
+      </div>
+
+    </div> <!-- /container -->
+
+    <!-- Google Prettify -->
+<script src="http://cdnjs.cloudflare.com/ajax/libs/prettify/188.0.0/prettify.js"></script>
+<script>
+  var pres = document.getElementsByTagName("pre");
+  for (var i=0; i < pres.length; ++i) {
+    pres[i].className = "prettyprint linenums";
+  }
+  prettyPrint();
+</script>
+<!-- end Google Prettify -->
+    <script>
+  var _gaq=[['_setAccount','UA-40288773-1'],['_trackPageview']];
+  (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+  g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
+  s.parentNode.insertBefore(g,s)}(document,'script'));
+</script>
+  </body>
+</html>
