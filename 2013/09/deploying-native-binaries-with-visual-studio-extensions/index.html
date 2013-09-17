@@ -12,9 +12,9 @@
     <![endif]-->
 
     <!-- Le styles -->
-    <link href="/articles/assets/twitter/stylesheets/bootstrap.min.css?0.7341843960738127" type="text/css" rel="stylesheet" media="all">
-<link href="/articles/assets/twitter/stylesheets/style.css?0.22346268048096218" type="text/css" rel="stylesheet" media="all">
-<link href="/articles/assets/twitter/widgets/google_prettify/stylesheets/twitter-bootstrap.css?0.4364080666871045" type="text/css" rel="stylesheet" media="all">
+    <link href="/articles/assets/twitter/stylesheets/bootstrap.min.css?0.7022422028426718" type="text/css" rel="stylesheet" media="all">
+<link href="/articles/assets/twitter/stylesheets/style.css?0.44374316202074515" type="text/css" rel="stylesheet" media="all">
+<link href="/articles/assets/twitter/widgets/google_prettify/stylesheets/twitter-bootstrap.css?0.8311225965881311" type="text/css" rel="stylesheet" media="all">
 
     
 
@@ -61,7 +61,13 @@
       <span>2013-09-17</strong>
     </div>
     <div class="content">
-      <p>If your extension depends on a native binary, you have to do some tricks to get the binary to be copied into the experimental hive directory for testing and including in your VSIX for deployment.</p>
+      <h3 id="toc_0">Deploying Native Binaries</h3>
+
+<p>If your extension depends on a native binary, you have to do some tricks to get the binary to be copied into the experimental hive directory for testing and including in your VSIX for deployment.</p>
+
+<p>I was doing some manual copies in my post build event that was brittle, and had to explicitly include the native binaries as <code>content</code>.</p>
+
+<h3 id="toc_1">Another way</h3>
 
 <p><a href="https://github.com/nulltoken">nulltoken</a> had given out a helpful hint on using msbuild directives to stream-line this process:</p>
 
@@ -69,6 +75,8 @@
 <p>You might be willing to glance at
 <a href="https://github.com/libgit2/libgit2sharp/blob/vNext/LibGit2Sharp/CopyNativeDependencies.targets">https://github.com/libgit2/libgit2sharp/blob/vNext/LibGit2Sharp/CopyNativeDependencies.targets</a> and the way it&#39;s being used in <code>LibGit2Sharp.Tests.csproj</code></p>
 </blockquote>
+
+<h3 id="toc_2">How to do it</h3>
 
 <p>I adapted this approach for my project. First, I define a reference to native binaries that live in the nuget directory.  <code>$(MSBuildProjectDirectory)</code> refers to directory containing the .csproj file.</p>
 
@@ -90,9 +98,11 @@ The <code>Link</code> directive describes how the file is displayed in the solut
 &lt;/ItemGroup&gt;
 </code></pre>
 
+<h3 id="toc_3">In conclusion</h3>
+
 <p>Finally, I initially tried nulltoken&#39;s solution directly, but couldn&#39;t find out how to get it to work in the context of a visual studio extension.</p>
 
-<p><a href="http://stackoverflow.com/questions/1292351/including-content-files-in-csproj-that-are-outside-the-project-cone">Relevant Stack Overflow quesition</a></p>
+<p>This was useful for helping me understand some of the concepts: <a href="http://stackoverflow.com/questions/1292351/including-content-files-in-csproj-that-are-outside-the-project-cone">Relevant Stack Overflow quesition</a></p>
 
     </div>
     <ul class="tag_box inline">

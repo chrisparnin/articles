@@ -3,12 +3,18 @@
   <channel>
     <title>Chris Parnin</title>
     <link>http://chrisparnin.github.io</link>
-    <pubDate>2013-09-17 13:44:11 -0400</pubDate>
+    <pubDate>2013-09-17 13:51:53 -0400</pubDate>
     <item>
       <title>Deploying native binaries with Visual Studio extensions</title>
       <link>http://chrisparnin.github.io/articles/2013/09/deploying-native-binaries-with-visual-studio-extensions</link>
       <pubDate>2013-09-17</pubDate>
-      <description>&lt;p&gt;If your extension depends on a native binary, you have to do some tricks to get the binary to be copied into the experimental hive directory for testing and including in your VSIX for deployment.&lt;/p&gt;
+      <description>&lt;h3 id="toc_0"&gt;Deploying Native Binaries&lt;/h3&gt;
+
+&lt;p&gt;If your extension depends on a native binary, you have to do some tricks to get the binary to be copied into the experimental hive directory for testing and including in your VSIX for deployment.&lt;/p&gt;
+
+&lt;p&gt;I was doing some manual copies in my post build event that was brittle, and had to explicitly include the native binaries as &lt;code&gt;content&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h3 id="toc_1"&gt;Another way&lt;/h3&gt;
 
 &lt;p&gt;&lt;a href="https://github.com/nulltoken"&gt;nulltoken&lt;/a&gt; had given out a helpful hint on using msbuild directives to stream-line this process:&lt;/p&gt;
 
@@ -16,6 +22,8 @@
 &lt;p&gt;You might be willing to glance at
 &lt;a href="https://github.com/libgit2/libgit2sharp/blob/vNext/LibGit2Sharp/CopyNativeDependencies.targets"&gt;https://github.com/libgit2/libgit2sharp/blob/vNext/LibGit2Sharp/CopyNativeDependencies.targets&lt;/a&gt; and the way it&amp;#39;s being used in &lt;code&gt;LibGit2Sharp.Tests.csproj&lt;/code&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
+
+&lt;h3 id="toc_2"&gt;How to do it&lt;/h3&gt;
 
 &lt;p&gt;I adapted this approach for my project. First, I define a reference to native binaries that live in the nuget directory.  &lt;code&gt;$(MSBuildProjectDirectory)&lt;/code&gt; refers to directory containing the .csproj file.&lt;/p&gt;
 
@@ -37,9 +45,11 @@ The &lt;code&gt;Link&lt;/code&gt; directive describes how the file is displayed 
 &amp;lt;/ItemGroup&amp;gt;
 &lt;/code&gt;&lt;/pre&gt;
 
+&lt;h3 id="toc_3"&gt;In conclusion&lt;/h3&gt;
+
 &lt;p&gt;Finally, I initially tried nulltoken&amp;#39;s solution directly, but couldn&amp;#39;t find out how to get it to work in the context of a visual studio extension.&lt;/p&gt;
 
-&lt;p&gt;&lt;a href="http://stackoverflow.com/questions/1292351/including-content-files-in-csproj-that-are-outside-the-project-cone"&gt;Relevant Stack Overflow quesition&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;This was useful for helping me understand some of the concepts: &lt;a href="http://stackoverflow.com/questions/1292351/including-content-files-in-csproj-that-are-outside-the-project-cone"&gt;Relevant Stack Overflow quesition&lt;/a&gt;&lt;/p&gt;
 </description>
     </item>
     <item>
