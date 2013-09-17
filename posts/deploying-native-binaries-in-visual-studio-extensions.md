@@ -5,12 +5,20 @@ description:
 categories:
 ---
 
+### Deploying Native Binaries
+
 If your extension depends on a native binary, you have to do some tricks to get the binary to be copied into the experimental hive directory for testing and including in your VSIX for deployment.
+
+I was doing some manual copies in my post build event that was brittle, and had to explicitly include the native binaries as `content`.
+
+### Another way
 
 [nulltoken](https://github.com/nulltoken) had given out a helpful hint on using msbuild directives to stream-line this process:
 
 > You might be willing to glance at
 > https://github.com/libgit2/libgit2sharp/blob/vNext/LibGit2Sharp/CopyNativeDependencies.targets and the way it's being used in `LibGit2Sharp.Tests.csproj`
+
+### How to do it
 
 I adapted this approach for my project. First, I define a reference to native binaries that live in the nuget directory.  `$(MSBuildProjectDirectory)` refers to directory containing the .csproj file.
 
@@ -30,7 +38,8 @@ The `Link` directive describes how the file is displayed in the solution explore
         </Content>
     </ItemGroup>
 
+### In conclusion
+
 Finally, I initially tried nulltoken's solution directly, but couldn't find out how to get it to work in the context of a visual studio extension.
 
-
-[Relevant Stack Overflow quesition](http://stackoverflow.com/questions/1292351/including-content-files-in-csproj-that-are-outside-the-project-cone)
+This was useful for helping me understand some of the concepts: [Relevant Stack Overflow quesition](http://stackoverflow.com/questions/1292351/including-content-files-in-csproj-that-are-outside-the-project-cone)
