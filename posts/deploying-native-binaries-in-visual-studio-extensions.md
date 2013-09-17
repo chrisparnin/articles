@@ -26,7 +26,7 @@ I adapted this approach for my project. First, I define a reference to native bi
         <NativeBinariesDirectory>$(MSBuildProjectDirectory)\..\packages\LibGit2Sharp.0.13.0.0\NativeBinaries</NativeBinariesDirectory>
     </PropertyGroup>
 
-The nice thing about using MSBuild directives is that you can use pattern matching to include projects.
+The nice thing about using MSBuild directives is that you can use pattern matching to include files.
 `$(NativeBinariesDirectory)\**\*.*"` specifies all the native files I want to include in the project.
 The `Link` directive describes how the file is displayed in the solution explorer.  `CopyToOutputDirectory` is used to copy the binaries in the output bin directory (but not vsix).  `IncludeInVSIX` is what makes sure these files will be included in the experimental hive extension folder as well as the packaged .VSIX file.
 
