@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Deploying native binaries with Visual Studio extensions</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Chris Parnin">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le styles -->
+    <link href="/articles/assets/twitter/stylesheets/bootstrap.min.css?0.7341843960738127" type="text/css" rel="stylesheet" media="all">
+<link href="/articles/assets/twitter/stylesheets/style.css?0.22346268048096218" type="text/css" rel="stylesheet" media="all">
+<link href="/articles/assets/twitter/widgets/google_prettify/stylesheets/twitter-bootstrap.css?0.4364080666871045" type="text/css" rel="stylesheet" media="all">
+
+    
+
+    <!-- Le fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+  </head>
+
+  <body>
+
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container-narrow">
+          <a class="brand" href="/articles/">Chris Parnin</a>
+          <ul class="nav">
+              
+                <li><a href="/articles/about">About</a></li>
+              
+              
+                <li><a href="/articles/archive">Archive</a></li>
+              
+              
+                <li><a href="/articles/tags">Tags</a></li>
+              
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-narrow">
+
+      <div class="content">
+        <div class="page-header">
+  <h1>Deploying native binaries with Visual Studio extensions </h1>
+</div>
+
+<div class="row-fluid post-full">
+  <div class="span12">
+    <div class="date">
+      <span>2013-09-17</strong>
+    </div>
+    <div class="content">
+      <p>If your extension depends on a native binary, you have to do some tricks to get the binary to be copied into the experimental hive directory for testing and including in your VSIX for deployment.</p>
+
+<p><a href="https://github.com/nulltoken">nulltoken</a> had given out a helpful hint on using msbuild directives to stream-line this process:</p>
+
+<blockquote>
+<p>You might be willing to glance at
+<a href="https://github.com/libgit2/libgit2sharp/blob/vNext/LibGit2Sharp/CopyNativeDependencies.targets">https://github.com/libgit2/libgit2sharp/blob/vNext/LibGit2Sharp/CopyNativeDependencies.targets</a> and the way it&#39;s being used in <code>LibGit2Sharp.Tests.csproj</code></p>
+</blockquote>
+
+<p>I adapted this approach for my project. First, I define a reference to native binaries that live in the nuget directory.  <code>$(MSBuildProjectDirectory)</code> refers to directory containing the .csproj file.</p>
+
+<pre><code>&lt;PropertyGroup&gt;
+    &lt;NativeBinariesDirectory&gt;$(MSBuildProjectDirectory)\..\packages\LibGit2Sharp.0.13.0.0\NativeBinaries&lt;/NativeBinariesDirectory&gt;
+&lt;/PropertyGroup&gt;
+</code></pre>
+
+<p>The nice thing about using MSBuild directives is that you can use pattern matching to include projects.
+<code>$(NativeBinariesDirectory)\**\*.*&quot;</code> specifies all the native files I want to include in the project.
+The <code>Link</code> directive describes how the file is displayed in the solution explorer.  <code>CopyToOutputDirectory</code> is used to copy the binaries in the output bin directory (but not vsix).  <code>IncludeInVSIX</code> is what makes sure these files will be included in the experimental hive extension folder as well as the packaged .VSIX file.</p>
+
+<pre><code>&lt;ItemGroup&gt;
+    &lt;Content Include=&quot;$(NativeBinariesDirectory)\**\*.*&quot;&gt;
+        &lt;Link&gt;NativeBinaries\%(RecursiveDir)%(Filename)%(Extension)&lt;/Link&gt;
+        &lt;CopyToOutputDirectory&gt;PreserveNewest&lt;/CopyToOutputDirectory&gt;
+        &lt;IncludeInVSIX&gt;true&lt;/IncludeInVSIX&gt;
+    &lt;/Content&gt;
+&lt;/ItemGroup&gt;
+</code></pre>
+
+<p>Finally, I initially tried nulltoken&#39;s solution directly, but couldn&#39;t find out how to get it to work in the context of a visual studio extension.</p>
+
+<p><a href="http://stackoverflow.com/questions/1292351/including-content-files-in-csproj-that-are-outside-the-project-cone">Relevant Stack Overflow quesition</a></p>
+
+    </div>
+    <ul class="tag_box inline">
+      <li><i class="icon-folder-open"></i></li>
+    </ul>
+    <ul class="tag_box inline">
+      <li><i class="icon-tags"></i></li>
+    </ul>
+    <hr>
+    <div class="pagination">
+      <ul>
+          <li class="prev"><a href="/articles/2013/09/parse-git-log-output-in-c" title="Parse git log output in C#">&larr; Previous</a></li>
+
+          <li><a href="/articles/archive">Archive</a></li>
+
+          <li class="next disabled"><a>Next &rarr;</a>
+      </ul>
+    </div>
+    <hr>
+    <div id="disqus_thread"></div>
+<script>
+    var disqus_developer = 1;
+    var disqus_shortname = 'chrisparnin-articles'; // required: replace example with your forum shortname
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+  </div>
+</div>
+
+
+      </div>
+
+      <hr>
+      <div class="footer">
+        <p>&copy; Chris Parnin 2013
+          with help from <a href="http://ruhoh.com" target="_blank" title="The Definitive Technical Blogging Framework">ruhoh</a>
+          and <a href="http://twitter.github.com/bootstrap/" target="_blank">Twitter Bootstrap</a>
+        </p>
+      </div>
+
+    </div> <!-- /container -->
+
+    <!-- Google Prettify -->
+<script src="http://cdnjs.cloudflare.com/ajax/libs/prettify/188.0.0/prettify.js"></script>
+<script>
+  var pres = document.getElementsByTagName("pre");
+  for (var i=0; i < pres.length; ++i) {
+    pres[i].className = "prettyprint linenums";
+  }
+  prettyPrint();
+</script>
+<!-- end Google Prettify -->
+    <script>
+  var _gaq=[['_setAccount','UA-40288773-1'],['_trackPageview']];
+  (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+  g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
+  s.parentNode.insertBefore(g,s)}(document,'script'));
+</script>
+  </body>
+</html>

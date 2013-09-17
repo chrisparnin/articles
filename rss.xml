@@ -3,7 +3,45 @@
   <channel>
     <title>Chris Parnin</title>
     <link>http://chrisparnin.github.io</link>
-    <pubDate>2013-09-05 17:24:51 -0400</pubDate>
+    <pubDate>2013-09-17 13:44:11 -0400</pubDate>
+    <item>
+      <title>Deploying native binaries with Visual Studio extensions</title>
+      <link>http://chrisparnin.github.io/articles/2013/09/deploying-native-binaries-with-visual-studio-extensions</link>
+      <pubDate>2013-09-17</pubDate>
+      <description>&lt;p&gt;If your extension depends on a native binary, you have to do some tricks to get the binary to be copied into the experimental hive directory for testing and including in your VSIX for deployment.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href="https://github.com/nulltoken"&gt;nulltoken&lt;/a&gt; had given out a helpful hint on using msbuild directives to stream-line this process:&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;You might be willing to glance at
+&lt;a href="https://github.com/libgit2/libgit2sharp/blob/vNext/LibGit2Sharp/CopyNativeDependencies.targets"&gt;https://github.com/libgit2/libgit2sharp/blob/vNext/LibGit2Sharp/CopyNativeDependencies.targets&lt;/a&gt; and the way it&amp;#39;s being used in &lt;code&gt;LibGit2Sharp.Tests.csproj&lt;/code&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;I adapted this approach for my project. First, I define a reference to native binaries that live in the nuget directory.  &lt;code&gt;$(MSBuildProjectDirectory)&lt;/code&gt; refers to directory containing the .csproj file.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;PropertyGroup&amp;gt;
+    &amp;lt;NativeBinariesDirectory&amp;gt;$(MSBuildProjectDirectory)\..\packages\LibGit2Sharp.0.13.0.0\NativeBinaries&amp;lt;/NativeBinariesDirectory&amp;gt;
+&amp;lt;/PropertyGroup&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The nice thing about using MSBuild directives is that you can use pattern matching to include projects.
+&lt;code&gt;$(NativeBinariesDirectory)\**\*.*&amp;quot;&lt;/code&gt; specifies all the native files I want to include in the project.
+The &lt;code&gt;Link&lt;/code&gt; directive describes how the file is displayed in the solution explorer.  &lt;code&gt;CopyToOutputDirectory&lt;/code&gt; is used to copy the binaries in the output bin directory (but not vsix).  &lt;code&gt;IncludeInVSIX&lt;/code&gt; is what makes sure these files will be included in the experimental hive extension folder as well as the packaged .VSIX file.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;ItemGroup&amp;gt;
+    &amp;lt;Content Include=&amp;quot;$(NativeBinariesDirectory)\**\*.*&amp;quot;&amp;gt;
+        &amp;lt;Link&amp;gt;NativeBinaries\%(RecursiveDir)%(Filename)%(Extension)&amp;lt;/Link&amp;gt;
+        &amp;lt;CopyToOutputDirectory&amp;gt;PreserveNewest&amp;lt;/CopyToOutputDirectory&amp;gt;
+        &amp;lt;IncludeInVSIX&amp;gt;true&amp;lt;/IncludeInVSIX&amp;gt;
+    &amp;lt;/Content&amp;gt;
+&amp;lt;/ItemGroup&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Finally, I initially tried nulltoken&amp;#39;s solution directly, but couldn&amp;#39;t find out how to get it to work in the context of a visual studio extension.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href="http://stackoverflow.com/questions/1292351/including-content-files-in-csproj-that-are-outside-the-project-cone"&gt;Relevant Stack Overflow quesition&lt;/a&gt;&lt;/p&gt;
+</description>
+    </item>
     <item>
       <title>Parse git log output in C#</title>
       <link>http://chrisparnin.github.io/articles/2013/09/parse-git-log-output-in-c</link>
