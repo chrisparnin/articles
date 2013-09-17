@@ -12,9 +12,9 @@
     <![endif]-->
 
     <!-- Le styles -->
-    <link href="/articles/assets/twitter/stylesheets/bootstrap.min.css?0.7022422028426718" type="text/css" rel="stylesheet" media="all">
-<link href="/articles/assets/twitter/stylesheets/style.css?0.44374316202074515" type="text/css" rel="stylesheet" media="all">
-<link href="/articles/assets/twitter/widgets/google_prettify/stylesheets/twitter-bootstrap.css?0.8311225965881311" type="text/css" rel="stylesheet" media="all">
+    <link href="/articles/assets/twitter/stylesheets/bootstrap.min.css?0.20842228072482805" type="text/css" rel="stylesheet" media="all">
+<link href="/articles/assets/twitter/stylesheets/style.css?0.23360488173707605" type="text/css" rel="stylesheet" media="all">
+<link href="/articles/assets/twitter/widgets/google_prettify/stylesheets/twitter-bootstrap.css?0.43354637319153655" type="text/css" rel="stylesheet" media="all">
 
     
 
@@ -85,7 +85,7 @@
 &lt;/PropertyGroup&gt;
 </code></pre>
 
-<p>The nice thing about using MSBuild directives is that you can use pattern matching to include projects.
+<p>The nice thing about using MSBuild directives is that you can use pattern matching to include files.
 <code>$(NativeBinariesDirectory)\**\*.*&quot;</code> specifies all the native files I want to include in the project.
 The <code>Link</code> directive describes how the file is displayed in the solution explorer.  <code>CopyToOutputDirectory</code> is used to copy the binaries in the output bin directory (but not vsix).  <code>IncludeInVSIX</code> is what makes sure these files will be included in the experimental hive extension folder as well as the packaged .VSIX file.</p>
 

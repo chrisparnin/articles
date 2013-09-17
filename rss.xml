@@ -3,7 +3,7 @@
   <channel>
     <title>Chris Parnin</title>
     <link>http://chrisparnin.github.io</link>
-    <pubDate>2013-09-17 13:51:53 -0400</pubDate>
+    <pubDate>2013-09-17 13:58:35 -0400</pubDate>
     <item>
       <title>Deploying native binaries with Visual Studio extensions</title>
       <link>http://chrisparnin.github.io/articles/2013/09/deploying-native-binaries-with-visual-studio-extensions</link>
@@ -32,7 +32,7 @@
 &amp;lt;/PropertyGroup&amp;gt;
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;p&gt;The nice thing about using MSBuild directives is that you can use pattern matching to include projects.
+&lt;p&gt;The nice thing about using MSBuild directives is that you can use pattern matching to include files.
 &lt;code&gt;$(NativeBinariesDirectory)\**\*.*&amp;quot;&lt;/code&gt; specifies all the native files I want to include in the project.
 The &lt;code&gt;Link&lt;/code&gt; directive describes how the file is displayed in the solution explorer.  &lt;code&gt;CopyToOutputDirectory&lt;/code&gt; is used to copy the binaries in the output bin directory (but not vsix).  &lt;code&gt;IncludeInVSIX&lt;/code&gt; is what makes sure these files will be included in the experimental hive extension folder as well as the packaged .VSIX file.&lt;/p&gt;
 
