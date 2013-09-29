@@ -3,7 +3,411 @@
   <channel>
     <title>Chris Parnin</title>
     <link>http://chrisparnin.github.io</link>
-    <pubDate>2013-09-17 13:58:35 -0400</pubDate>
+    <pubDate>2013-09-28 22:06:23 -0400</pubDate>
+    <item>
+      <title>Using Tagging and Adornments for better TODOs in Visual Studio.</title>
+      <link>http://chrisparnin.github.io/articles/2013/09/using-tagging-and-adornments-for-better-todos-in-visual-studio</link>
+      <pubDate>2013-09-27</pubDate>
+      <description>&lt;p&gt;Visual Studio actually provides a powerful framework for making custom extensions to the editor while keeping the code surprisingly simple. &lt;/p&gt;
+
+&lt;p&gt;Imagine if you wanted to make a &lt;code&gt;// TODO&lt;/code&gt; note appear more distinctive as well as provide custom actions.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src="/articles/assets/media/todo-ex.png" alt="TodoExample"&gt;&lt;/p&gt;
+
+&lt;p&gt;With Visual Studio Extensions and MEF, you can make direct graphical changes to the editor with an &lt;code&gt;IAdornmentLayer&lt;/code&gt;. But if you want to support custom editor actions and more interactivity, it is worth it to also create an &lt;code&gt;ITagger&lt;/code&gt;. This post will show how you can insert tags into the &lt;code&gt;TextBuffer&lt;/code&gt; and query those to render custom adornments.&lt;/p&gt;
+
+&lt;h4 id="toc_0"&gt;Adornments&lt;/h4&gt;
+
+&lt;p&gt;First, we create a class that will respond to text view creation events and create an &lt;code&gt;IAdornmentLayer&lt;/code&gt;&lt;/p&gt;
+
+&lt;h5 id="toc_1"&gt;TodoArdornmentFactory.cs&lt;/h5&gt;
+
+&lt;p&gt;We provide MEF attributes so that the class will merge into the  &lt;code&gt;IWpfTextViewCreationListener&lt;/code&gt; MEF container.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;/// &amp;lt;summary&amp;gt;
+/// Establishes an &amp;lt;see cref=&amp;quot;IAdornmentLayer&amp;quot;/&amp;gt; to place the adornment on and exports the &amp;lt;see cref=&amp;quot;IWpfTextViewCreationListener&amp;quot;/&amp;gt;
+/// that instantiates the adornment on the event of a &amp;lt;see cref=&amp;quot;IWpfTextView&amp;quot;/&amp;gt;&amp;#39;s creation
+/// &amp;lt;/summary&amp;gt;
+[Export(typeof(IWpfTextViewCreationListener))]
+[ContentType(&amp;quot;text&amp;quot;)]
+[TextViewRole(PredefinedTextViewRoles.Document)]
+internal sealed class TodoArdornmentFactory : IWpfTextViewCreationListener
+{
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;MEF magic that will provide the adornment layer we can use when drawing adornments.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    /// &amp;lt;summary&amp;gt;
+    /// Defines the adornment layer for the adornment. This layer is ordered 
+    /// after the selection layer in the Z-order
+    /// &amp;lt;/summary&amp;gt;
+    [Export(typeof(AdornmentLayerDefinition))]
+    [Name(&amp;quot;TodoArdornment&amp;quot;)]
+    [Order(After = PredefinedAdornmentLayers.Selection, Before = PredefinedAdornmentLayers.Text)]
+    [TextViewRole(PredefinedTextViewRoles.Document)]
+    public AdornmentLayerDefinition editorAdornmentLayer = null;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Create a new Adornment in response to text view creation.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    public void TextViewCreated(IWpfTextView textView)
+    {
+        new TodoArdornment(textView);
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id="toc_2"&gt;TodoArdornment.cs&lt;/h5&gt;
+
+&lt;p&gt;Code responsible for deciding where to drawn adornments over text buffer and how to draw it.&lt;/p&gt;
+
+&lt;p&gt;The two most important things we need to handle in the constructor is getting the &lt;code&gt;TodoArdornment&lt;/code&gt; layer we specified in the Factory, and listen for changes to the text editor.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    public TodoArdornment(IWpfTextView view)
+    {
+        _view = view;
+        _layer = view.GetAdornmentLayer(&amp;quot;TodoArdornment&amp;quot;);
+
+        //Listen to any event that changes the layout (text changes, scrolling, etc)
+        _view.LayoutChanged += OnLayoutChanged;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now we respond to text editor changes.  Note, this happens a lot, even with simple scrolling!&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    private void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
+    {
+        foreach (ITextViewLine line in e.NewOrReformattedLines)
+        {
+            this.CreateVisuals(line);
+        }
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Next, we can scan code in the current viewport and check if it has a TODO.
+But first, an aside.  Apparently, it not so simple to get string of text inside of a &lt;code&gt;ITextViewLine&lt;/code&gt;.  Let&amp;#39;s define a method &lt;code&gt;TryGetText&lt;/code&gt; as provided by Jared Parson via twitter.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    /// &amp;lt;summary&amp;gt;
+    /// This will get the text of the ITextView line as it appears in the actual user editable 
+    /// document. 
+    /// jared parson: https://gist.github.com/4320643
+    /// &amp;lt;/summary&amp;gt;
+    public static bool TryGetText(IWpfTextView textView, ITextViewLine textViewLine, out string text)
+    {
+        var extent = textViewLine.Extent;
+        var bufferGraph = textView.BufferGraph;
+        try
+        {
+            var collection = bufferGraph.MapDownToSnapshot(extent, SpanTrackingMode.EdgeInclusive, textView.TextSnapshot);
+            var span = new SnapshotSpan(collection[0].Start, collection[collection.Count - 1].End);
+            //text = span.ToString();
+            text = span.GetText();
+            return true;
+        }
+        catch
+        {
+            text = null;
+            return false;
+        }
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Ok.  Let&amp;#39;s match the line of text!&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    Regex todoLineRegex = new Regex(@&amp;quot;\/\/\s*TODO\b&amp;quot;);
+
+    private void CreateVisuals(ITextViewLine line)
+    {
+        IWpfTextViewLineCollection textViewLines = _view.TextViewLines;
+        string text = null;
+        if (TryGetText(_view, line, out text))
+        {
+            var match = todoLineRegex.Match(text);
+            if (match.Success)
+            {
+                int matchStart = line.Start.Position + span.Index;
+                var span = new SnapshotSpan(_view.TextSnapshot, Span.FromBounds(matchStart, matchStart + match.Length));
+                SetBoundary(textViewLines, span);
+            }
+        }
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Finally, let&amp;#39;s draw something!!!&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    public void SetBoundary(IWpfTextViewLineCollection textViewLines, SnapshotSpan span)
+    {
+        Geometry g = textViewLines.GetMarkerGeometry(span);
+        if (g != null)
+        {
+            GeometryDrawing drawing = new GeometryDrawing(_brush, _pen, g);
+            drawing.Freeze();
+
+            DrawingImage drawingImage = new DrawingImage(drawing);
+            drawingImage.Freeze();
+
+            Image image = new Image();
+            image.Source = drawingImage;
+
+            //Align the image with the top of the bounds of the text geometry
+            Canvas.SetLeft(image, g.Bounds.Left);
+            Canvas.SetTop(image, g.Bounds.Top);
+
+            _layer.AddAdornment(AdornmentPositioningBehavior.TextRelative, span, null, image, null);
+        }
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id="toc_3"&gt;Tagging&lt;/h4&gt;
+
+&lt;p&gt;Now, we could stop here if we just want the visual effect.  But if we want to perform actions and other interactions, we need to introduce tagging.&lt;/p&gt;
+
+&lt;p&gt;First we need to make some updates to our previous code, and then introduce  a tag provider, tags, and actions.&lt;/p&gt;
+
+&lt;h5 id="toc_4"&gt;TodoArdornmentFactory.cs&lt;/h5&gt;
+
+&lt;p&gt;This service will be used to help find tags in the editor.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    [Import]
+    private IViewTagAggregatorFactoryService ViewTagAggregatorFactoryService { get; set; }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Update to pass in tag factory service.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    public void TextViewCreated(IWpfTextView textView)
+    {
+        new TodoArdornment(textView, ViewTagAggregatorFactoryService.CreateTagAggregator&amp;lt;TodoGlyphTag&amp;gt;( textView ));
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id="toc_5"&gt;TodoArdornment.cs&lt;/h5&gt;
+
+&lt;p&gt;Save tag service.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    public TodoArdornment(IWpfTextView view, ITagAggregator&amp;lt;TodoGlyphTag&amp;gt; aggregrator)
+    {
+        ...
+        _createTagAggregator = aggregrator;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Instead of scanning code ourselves, we move that code the the tagger and instead ask the tag service for tags held in the span.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    private void CreateVisuals(ITextViewLine line)
+    {
+        ...
+        foreach (var tag in this._createTagAggregator.GetTags(line.Extent))
+        {
+            foreach (var span in tag.Span.GetSpans(_view.TextSnapshot))
+            {
+                SetBoundary(textViewLines, span);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id="toc_6"&gt;TodoArdornmentFactory.cs&lt;/h5&gt;
+
+&lt;p&gt;We create a tagger that will be associated with a text view.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;[Export(typeof(IViewTaggerProvider))]
+[ContentType(&amp;quot;text&amp;quot;)]
+[Order(Before = &amp;quot;default&amp;quot;)]
+[TagType(typeof(TodoGlyphTag))]
+internal class TodoTagProvider : IViewTaggerProvider
+{
+    Dictionary&amp;lt;Microsoft.VisualStudio.Text.Editor.ITextView, TodoTagger&amp;gt; taggers = new Dictionary&amp;lt;Microsoft.VisualStudio.Text.Editor.ITextView, TodoTagger&amp;gt;();
+
+    public ITagger&amp;lt;T&amp;gt; CreateTagger&amp;lt;T&amp;gt;(Microsoft.VisualStudio.Text.Editor.ITextView textView, Microsoft.VisualStudio.Text.ITextBuffer buffer) where T : ITag
+    {
+        if (buffer == null || textView == null)
+        {
+            return null;
+        }
+
+        //make sure we are tagging only the top buffer 
+        if (buffer == textView.TextBuffer)
+        {
+            if (!taggers.ContainsKey(textView))
+            {
+                taggers[textView] = new TodoTagger(textView);
+            }
+            return taggers[textView] as ITagger&amp;lt;T&amp;gt;;
+        }
+        else return null;
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id="toc_7"&gt;TodoGlyphTag.cs&lt;/h5&gt;
+
+&lt;p&gt;Create a Tag class, which doesn&amp;#39;t do much at the moment.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;public class TodoGlyphTag : SmartTag
+{
+    public TodoGlyphTag(SmartTagType smartTagType, ReadOnlyCollection&amp;lt;SmartTagActionSet&amp;gt; actionSets)
+        : base(smartTagType, actionSets)
+    {
+
+    }
+    internal void Execute(Point position, FrameworkElement frameworkElement)
+    {
+        // Smart Tag, Intellisense.
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id="toc_8"&gt;TodoTagger.cs&lt;/h5&gt;
+
+&lt;pre&gt;&lt;code&gt;public class TodoTagger : ITagger&amp;lt;TodoGlyphTag&amp;gt;
+{
+    public event EventHandler&amp;lt;Microsoft.VisualStudio.Text.SnapshotSpanEventArgs&amp;gt; TagsChanged;
+    Regex todoLineRegex = new Regex(@&amp;quot;\/\/\s*TODO\b&amp;quot;);
+    ITextView _textView;
+
+    internal TodoTagger(ITextView textView)
+    {
+        _textView = textView;
+        _textView.LayoutChanged += OnLayoutChanged;
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;We listen and response to &lt;code&gt;_textView.LayoutChanged&lt;/code&gt; and let others that this has caused tags to change.  This lets clients know to call &lt;code&gt;GetTags&lt;/code&gt; so we can give them the newest sets of tags.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    private void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
+    {
+        foreach (var span in e.NewOrReformattedSpans)
+        {
+            if (TagsChanged != null)
+            {
+                TagsChanged(this, new SnapshotSpanEventArgs(span));
+            }
+        }
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;GetTags&lt;/code&gt; does the basically the same thing that we used to do in TodoAdornment.cs&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    public IEnumerable&amp;lt;ITagSpan&amp;lt;TodoGlyphTag&amp;gt;&amp;gt; GetTags(Microsoft.VisualStudio.Text.NormalizedSnapshotSpanCollection spans)
+    {
+        foreach (var span in spans)
+        {
+            String text = span.GetText();
+            var match = todoLineRegex.Match(text);
+            if (match.Success)
+            {
+                var point = span.Start.Add(match.Index);
+                var spanNew = new SnapshotSpan(span.Snapshot, new Span(point.Position, match.Length));
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now... we want to do something different.  We want to provide a set of actions belonging to the tag, but only if the caret is current on the same line as the tag:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;                ITextViewLine line = null;
+                try
+                {
+                    line = _textView.Caret.ContainingTextViewLine;
+                }
+                catch( Exception ex )
+                {
+                    continue;
+                }
+                var actions = new ReadOnlyCollection&amp;lt;SmartTagActionSet&amp;gt;(new SmartTagActionSet[]{}.ToList());
+                if (line != null &amp;amp;&amp;amp;
+                    _textView.Caret.ContainingTextViewLine.ContainsBufferPosition(span.Start))
+                {
+                     actions = GetSmartTagActions(spanNew);
+                }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now we can create our tag!&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;                yield return new TagSpan&amp;lt;TodoGlyphTag&amp;gt;(spanNew, 
+                    new TodoGlyphTag(SmartTagType.Ephemeral, actions)
+                );
+            }
+        }
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id="toc_9"&gt;AttachAction.cs&lt;/h5&gt;
+
+&lt;p&gt;Defining actions that will appear in the menu.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;internal class AttachAction : ISmartTagAction
+{
+    private ITrackingSpan m_span;
+    private string m_upper;
+    private string m_display;
+    private ITextSnapshot m_snapshot;
+    private bool m_enabled = true;
+
+    public AttachAction(ITrackingSpan span)
+    {
+        m_span = span;
+        m_snapshot = span.TextBuffer.CurrentSnapshot;
+        m_upper = span.GetText(m_snapshot).ToUpper();
+        m_display = &amp;quot;Attach&amp;quot;;
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This we can use to hook into external services...&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    public void Invoke()
+    {
+        // Code for posting reminder to viewport...
+        m_enabled = false;
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Rest of action properties.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    public string DisplayText
+    {
+        get { return m_display; }
+    }
+    public ImageSource Icon
+    {
+        get { return null; }
+    }
+    public bool IsEnabled
+    {
+        get { return m_enabled; }
+    }
+
+    public ISmartTagSource Source
+    {
+        get;
+        private set;
+    }
+
+    public ReadOnlyCollection&amp;lt;SmartTagActionSet&amp;gt; ActionSets
+    {
+        get { return null; }
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h5 id="toc_10"&gt;TodoTagger.cs&lt;/h5&gt;
+
+&lt;p&gt;Back to the Tagger, let&amp;#39;s get our actions for a tag.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;    private ReadOnlyCollection&amp;lt;SmartTagActionSet&amp;gt; GetSmartTagActions(SnapshotSpan span)
+    {
+        List&amp;lt;SmartTagActionSet&amp;gt; actionSetList = new List&amp;lt;SmartTagActionSet&amp;gt;();
+        List&amp;lt;ISmartTagAction&amp;gt; actionList = new List&amp;lt;ISmartTagAction&amp;gt;();
+
+        ITrackingSpan trackingSpan = span.Snapshot.CreateTrackingSpan(span, SpanTrackingMode.EdgeInclusive);
+        actionList.Add(new AttachAction(trackingSpan, this));
+        SmartTagActionSet actionSet = new SmartTagActionSet(actionList.AsReadOnly());
+        actionSetList.Add(actionSet);
+        return actionSetList.AsReadOnly();
+    }
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h4 id="toc_11"&gt;Result&lt;/h4&gt;
+
+&lt;p&gt;&lt;img src="/articles/assets/media/attach.png" alt="attach"&gt;&lt;/p&gt;
+
+&lt;p&gt;Now, we can bring up an menu and use it to do other things, like attach the reminder to viewport, or link it to an external service like &lt;a href="rememberthemilk.com/"&gt;Remember the Milk&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src="/articles/assets/media/viewport.png" alt="viewport"&gt;&lt;/p&gt;
+</description>
+    </item>
     <item>
       <title>Deploying native binaries with Visual Studio extensions</title>
       <link>http://chrisparnin.github.io/articles/2013/09/deploying-native-binaries-with-visual-studio-extensions</link>
