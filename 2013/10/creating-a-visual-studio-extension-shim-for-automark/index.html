@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Creating a Visual Studio extension shim for automark</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Chris Parnin">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le styles -->
+<link href='/articles/assets/stylesheets/bootstrap.min-88238289010db19359d2181e634e95cd.css' type='text/css' rel='stylesheet' media='all'>
+<link href='/articles/assets/stylesheets/style-e81fa375b231bedf6cb2dbc6653570cc.css' type='text/css' rel='stylesheet' media='all'>
+<link href='/articles/assets/stylesheets/diff-colorize-869a53ec090fceb635b615cc3c3775d3.css' type='text/css' rel='stylesheet' media='all'>
+    <!-- Le fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+
+
+
+<!--<link href="https://cdnjs.cloudflare.com/ajax/libs/prettify/r224/prettify.css" type="text/css" rel="stylesheet" />-->
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js">
+</script> 
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prettify/r224/prettify.js">
+</script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js">
+</script>
+<script src="/articles/assets/javascripts/diff-colorize.js"></script>
+
+  </head>
+
+  <body>
+
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container-narrow">
+          <a class="brand" href="/articles/">Chris Parnin</a>
+          <ul class="nav">
+              
+                <li><a href="/articles/about">About</a></li>
+              
+              
+                <li><a href="/articles/archive">Archive</a></li>
+              
+              
+                <li><a href="/articles/tags">Tags</a></li>
+              
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-narrow">
+
+      <div class="content">
+        
+<div class="page-header">
+  <h1>Creating a Visual Studio extension shim for automark </h1>
+</div>
+
+<div class="row-fluid post-full">
+  <div class="span12">
+    <div class="date">
+      <span>2013-10-12</strong>
+    </div>
+    <div class="content">
+      <p><code>automark</code> is a tool for generating a markdown summary of a coding task from recent coding history.  It designed work with another tool, <a href="https://github.com/chrisparnin/autogit">autogit</a>, which records fine-grain code changes in the IDE.</p>
+
+<p>Something a little different about this blog post is that this doesn&#39;t aim to be a perfect <em>how-to</em> document, but instead, show incremental progress and mistakes along the way.</p>
+
+<h2 id="toc_0">Coding Summary, Friday, October 11, 2013</h2>
+
+<p>I will be showing one example usage of automark, by showing you a blog post generated from a recent coding task.  The <em>goal</em> of the task was to create a light-weight shim for Visual Studio to run and launch automark, which currently works as a command line tool, from the IDE itself.</p>
+
+<h3 id="toc_1">Setting up VSX package</h3>
+
+<p><code>ProvideAutoLoad</code> is necessary for getting Visual Studio package to load automatically.</p>
+
+<h4 id="toc_2">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>     // This attribute registers a tool window exposed by this package.
+     [ProvideToolWindow(typeof(MyToolWindow))]
+     [Guid(GuidList.guidautomarkVisualStudioPkgString)]
++    [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExists_string)]
+     public sealed class automarkVisualStudioPackage : Package
+     {
+         /// &lt;summary&gt;
+</code></pre>
+
+<p>Code for showing a message box is automatically generated -- extract this out as a method, can use later for debugging and error reporting.</p>
+
+<h4 id="toc_3">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>         /// &lt;/summary&gt;
+         private void MenuItemCallback(object sender, EventArgs e)
+         {
+         }
++        private void ShowMessage(string title, string message)
++        {
+             // Show a Message Box to prove we were here
+             IVsUIShell uiShell = (IVsUIShell)GetService(typeof(SVsUIShell));
+             Guid clsid = Guid.Empty;
+             Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(uiShell.ShowMessageBox(
+                        0,
+                        ref clsid,
+-                       &quot;automark&quot;,
+-                       string.Format(CultureInfo.CurrentCulture, &quot;Inside {0}.MenuItemCallback()&quot;, this.ToString()),
++                       title,
++                       message,
+                        string.Empty,
+</code></pre>
+
+<h3 id="toc_4">Executing command line program and reading its output</h3>
+
+<ul>
+<li><a href="http://stackoverflow.com/questions/1469764/run-command-prompt-commands">c# - Run Command Prompt Commands - Stack Overflow</a></li>
+</ul>
+
+<p>Get template code for running an executable for  command prompt.</p>
+
+<h4 id="toc_5">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>         /// &lt;/summary&gt;
+         private void MenuItemCallback(object sender, EventArgs e)
+         {
+-
++            System.Diagnostics.Process process = new System.Diagnostics.Process();
++            System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
++            startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
++            startInfo.FileName = &quot;automark.exe&quot;;
++            startInfo.Arguments = &quot;C:/DEV/github/automark/Source/Extensions/automark.VisualStudio/.HistoryData/LocalHistory&quot;;
++            process.StartInfo = startInfo;
++            process.Start();
+         }
+</code></pre>
+
+<ul>
+<li><a href="http://stackoverflow.com/questions/864484/getting-the-path-of-the-current-assembly">getting-the-path-of-the-current-assembly</a></li>
+</ul>
+
+<p>Thought relative path for running <code>automark.exe</code>, would work, but need to give it full path.</p>
+
+<h4 id="toc_6">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>+using System.Reflection;
+
+ namespace ninlabs.automark.VisualStudio
+ {
+         /// &lt;/summary&gt;
+         private void MenuItemCallback(object sender, EventArgs e)
+         {
++            string path = (new System.Uri(Assembly.GetExecutingAssembly().CodeBase)).AbsolutePath;
++            string directory = System.IO.Path.GetDirectoryName(path);
++            string executable = System.IO.Path.Combine(directory, &quot;automark.exe&quot;);
+             System.Diagnostics.Process process = new System.Diagnostics.Process();
+             System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
+             startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+-            startInfo.FileName = &quot;automark.exe&quot;;
++            startInfo.FileName = executable;
+             startInfo.Arguments = &quot;C:/DEV/github/automark/Source/Extensions/automark.VisualStudio/.HistoryData/LocalHistory&quot;;
+             process.StartInfo = startInfo;
+</code></pre>
+
+<ul>
+<li><a href="http://stackoverflow.com/questions/4291912/process-start-how-to-get-the-output">http://stackoverflow.com/questions/4291912/process-start-how-to-get-the-output</a></li>
+</ul>
+
+<p>Let&#39;s get the process output.</p>
+
+<h4 id="toc_7">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>             System.Diagnostics.Process process = new System.Diagnostics.Process();
+             System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
+             startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
++            startInfo.RedirectStandardOutput = true;
+             startInfo.FileName = executable;
+             startInfo.Arguments = &quot;C:/DEV/github/automark/Source/Extensions/automark.VisualStudio/.HistoryData/LocalHistory&quot;;
+             process.StartInfo = startInfo;
+             process.Start();
++            while (!process.StandardOutput.EndOfStream)
++            {
++                string line = process.StandardOutput.ReadLine();
++            }
+         }
+</code></pre>
+
+<p>Get the error output too for prosperity sake.</p>
+
+<h4 id="toc_8">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>+            startInfo.RedirectStandardError = true;
+             startInfo.FileName = executable;
+             startInfo.Arguments = &quot;C:/DEV/github/automark/Source/Extensions/automark.VisualStudio/.HistoryData/LocalHistory&quot;;
+             process.StartInfo = startInfo;
+             {
+                 string line = process.StandardOutput.ReadLine();
+             }
++            while (!process.StandardError.EndOfStream)
++            {
++                string line = process.StandardError.ReadLine();
++            }
+         }
+</code></pre>
+
+<h3 id="toc_9">Getting current solution</h3>
+
+<p>I&#39;ve been hard coding a test value to the command line tool.
+Need to get the solution path, so I can locate it&#39;s local history provided by <a href="https://github.com/chrisparnin/autogit">autogit</a>.  You can get this by listening to solution events.</p>
+
+<p>But, I accidentally implemented <code>IVsSolution</code>, not <code>IVsSolutionEvents</code>, which let&#39;s you listen to solution open events, etc.</p>
+
+<h4 id="toc_10">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>     [ProvideToolWindow(typeof(MyToolWindow))]
+     [Guid(GuidList.guidautomarkVisualStudioPkgString)]
+     [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExists_string)]
+-    public sealed class automarkVisualStudioPackage : Package, IVsSolution
++    public sealed class automarkVisualStudioPackage : Package, IVsSolutionEvents
++
+     {
+         /// &lt;summary&gt;
+         }
+
+-        public int AddVirtualProject(IVsHierarchy pHierarchy, uint grfAddVPFlags)
+-        {
+-            return VSConstants.S_OK;
+-        }
+</code></pre>
+
+<p>To implement <code>IVsSolutionEvents</code>, you need to return <code>VSConstants.S_OK</code> if everything goes ok.</p>
+
+<h4 id="toc_11">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>         public int OnAfterLoadProject(IVsHierarchy pStubHierarchy, IVsHierarchy pRealHierarchy)
+         {
+-            throw new NotImplementedException();
++            return VSConstants.S_OK;
+         }
+
+         public int OnAfterOpenProject(IVsHierarchy pHierarchy, int fAdded)
+         {
+-            throw new NotImplementedException();
++            return VSConstants.S_OK;
+         }
+</code></pre>
+
+<p>Add solution cookie and subscribe to solution events.</p>
+
+<h4 id="toc_12">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>     [Guid(GuidList.guidautomarkVisualStudioPkgString)]
+     [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExists_string)]
+     public sealed class automarkVisualStudioPackage : Package, IVsSolutionEvents
+-
+     {
++        private uint m_solutionCookie = 0;
++
+         /// &lt;summary&gt;
+         /// Default constructor of the package.
+                 MenuCommand menuToolWin = new MenuCommand(ShowToolWindow, toolwndCommandID);
+                 mcs.AddCommand( menuToolWin );
+             }
++            IVsSolution solution = (IVsSolution)GetService(typeof(SVsSolution));
++            ErrorHandler.ThrowOnFailure(solution.AdviseSolutionEvents(this, out m_solutionCookie));
+</code></pre>
+
+<p>Copied some code to handle solution path.</p>
+
+<h4 id="toc_13">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>     public sealed class automarkVisualStudioPackage : Package, IVsSolutionEvents
+     {
+         private uint m_solutionCookie = 0;
++        EnvDTE.DTE m_dte;
+
+         /// &lt;summary&gt;
+         /// Default constructor of the package.
+
+         public int OnAfterOpenSolution(object pUnkReserved, int fNewSolution)
+         {
++            InitializeWithDTEAndSolutionReady();
+             return VSConstants.S_OK;
+         }
+
++        private void InitializeWithDTEAndSolutionReady()
++        {
++            m_dte = (EnvDTE.DTE)this.GetService(typeof(EnvDTE.DTE));
++            if (m_dte == null)
++                ErrorHandler.ThrowOnFailure(1);
++            var solutionBase = &quot;&quot;;
++            var solutionName = &quot;&quot;;
++            if (m_dte.Solution != null)
++            {
++                solutionBase = System.IO.Path.GetDirectoryName(m_dte.Solution.FullName);
++                solutionName = System.IO.Path.GetFileNameWithoutExtension(m_dte.Solution.FullName);
++            }
++            //string dbName = string.Format(&quot;Ganji.History-{0}.sdf&quot;, solutionName);
++            var basePath = PreparePath();
++            var repositoryPath = System.IO.Path.Combine(basePath, &quot;LocalHistory&quot;);
++            var solutionPath = solutionBase;
++            m_saveListener = new SaveListener();
++            m_saveListener.Register(m_dte, repositoryPath, solutionPath);
++        }
+</code></pre>
+
+<p>Tweak to only keep part for finding out local history path.</p>
+
+<h4 id="toc_14">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>     public sealed class automarkVisualStudioPackage : Package, IVsSolutionEvents
+     {
+         private uint m_solutionCookie = 0;
+-        EnvDTE.DTE m_dte;
++        private EnvDTE.DTE m_dte;
++        private string m_localHistoryPath = &quot;&quot;;
+
+         /// &lt;summary&gt;
+                 solutionBase = System.IO.Path.GetDirectoryName(m_dte.Solution.FullName);
+                 solutionName = System.IO.Path.GetFileNameWithoutExtension(m_dte.Solution.FullName);
+             }
+-            //string dbName = string.Format(&quot;Ganji.History-{0}.sdf&quot;, solutionName);
++            m_localHistoryPath = FindLocalHistoryPath();
++        }
+
+-            var basePath = PreparePath();
+-            var repositoryPath = System.IO.Path.Combine(basePath, &quot;LocalHistory&quot;);
+-            var solutionPath = solutionBase;
++        private string FindLocalHistoryPath()
++        {
++            var basePath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
++            if (m_dte.Solution != null)
++            {
++                basePath = System.IO.Path.GetDirectoryName(m_dte.Solution.FullName);
++            }
++            basePath = System.IO.Path.Combine(basePath, &quot;.HistoryData&quot;);
++            var contextPath = System.IO.Path.Combine(basePath, &quot;LocalHistory&quot;);
+</code></pre>
+
+<p>Get rid of hard-coded path!</p>
+
+<h4 id="toc_15">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>             startInfo.FileName = executable;
+-            startInfo.Arguments = &quot;C:/DEV/github/automark/Source/Extensions/automark.VisualStudio/.HistoryData/LocalHistory&quot;;
++            startInfo.Arguments = m_localHistoryPath;
+             process.StartInfo = startInfo;
+             process.Start();
+</code></pre>
+
+<h3 id="toc_16">Write output to file and open in external editor/browser</h3>
+
+<ul>
+<li><a href="http://stackoverflow.com/questions/15595823/start-browser-from-windows-service">c# - Start browser from Windows service - Stack Overflow</a></li>
+<li><a href="http://stackoverflow.com/questions/11112592/open-html-file-in-c-sharp-application">Open HTML file in C# application - Stack Overflow</a></li>
+</ul>
+
+<p>Write out the results of command to file, then open file. </p>
+
+<h4 id="toc_17">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>+using System.Text;
+
+ namespace ninlabs.automark.VisualStudio
+ {
+             process.StartInfo = startInfo;
+             process.Start();
+
++            StringBuilder builder = new StringBuilder();
+             while (!process.StandardOutput.EndOfStream)
+             {
+                 string line = process.StandardOutput.ReadLine();
++                builder.Append(line);
+             }
++            System.IO.File.WriteAllText(&quot;automark-{0:yyyy-MM-dd}.md&quot;, builder.ToString());
++            System.Diagnostics.Process.Start(pathToHtmlFile);
+
+             while (!process.StandardError.EndOfStream)
+             {
+</code></pre>
+
+<ul>
+<li><a href="http://stackoverflow.com/questions/13389074/getting-gccs-output-from-command-line-when-running-it-through-c-sharp">http://stackoverflow.com/questions/13389074/getting-gccs-output-from-command-line-when-running-it-through-c-sharp</a></li>
+</ul>
+
+<p>Generate a temp file with a unique file name.</p>
+
+<h4 id="toc_18">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>                 string line = process.StandardOutput.ReadLine();
+                 builder.Append(line);
+             }
+-            System.IO.File.WriteAllText(&quot;automark-{0:yyyy-MM-dd}.md&quot;, builder.ToString());
+-            System.Diagnostics.Process.Start(pathToHtmlFile);
++
++            string tempMD =string.Format(&quot;automark-{0:yyyy-MM-dd-tt}.md&quot;, DateTime.Now);
++            System.IO.File.WriteAllText(tempMD, builder.ToString());
++            System.Diagnostics.Process.Start(tempMD);
+</code></pre>
+
+<p>If you want to redirect output, it turns out you need to turn off <code>UseShellExecute</code>.</p>
+
+<h4 id="toc_19">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>             startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+             startInfo.RedirectStandardOutput = true;
+             startInfo.RedirectStandardError = true;
++            startInfo.UseShellExecute = false;
+             startInfo.FileName = executable;
+             startInfo.Arguments = m_localHistoryPath;
+             process.StartInfo = startInfo;
+</code></pre>
+
+<p>Something isn&#39;t working, let&#39;s display the error message from command program.</p>
+
+<h4 id="toc_20">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>             process.StartInfo = startInfo;
+             process.Start();
+
++            StringBuilder buildForError = new StringBuilder();
++            while (!process.StandardError.EndOfStream)
++            {
++                string line = process.StandardError.ReadLine();
++                buildForError.Append(line);
++            }
++            var error = buildForError.ToString();
++            if (error.Trim().Length &gt; 0)
++            {
++                ShowMessage(&quot;automark&quot;, error);
++            }
+             StringBuilder builder = new StringBuilder();
+             while (!process.StandardOutput.EndOfStream)
+             {
+             string tempMD =string.Format(&quot;automark-{0:yyyy-MM-dd-tt}.md&quot;, DateTime.Now);
+             System.IO.File.WriteAllText(tempMD, builder.ToString());
+             System.Diagnostics.Process.Start(tempMD);
+-            while (!process.StandardError.EndOfStream)
+-            {
+-                string line = process.StandardError.ReadLine();
+-            }
+         }
+</code></pre>
+
+<p>Oops.  The path had <strong>spaces</strong> in it, which was being interpreted as multiple command line arguments.</p>
+
+<h4 id="toc_21">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>             startInfo.RedirectStandardError = true;
+             startInfo.UseShellExecute = false;
+             startInfo.FileName = executable;
+-            startInfo.Arguments = m_localHistoryPath;
++            startInfo.Arguments = &#39;&quot;&#39; + m_localHistoryPath + &#39;&quot;&#39;;
+             process.StartInfo = startInfo;
+             process.Start();
+</code></pre>
+
+<p>Ok.  But now the execution is <strong>hanging</strong>!  Turns out you should read <code>StandardOutput</code> before <code>StandardError</code> otherwise, it will just hang forever.</p>
+
+<h4 id="toc_22">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>             process.StartInfo = startInfo;
+             process.Start();
+
++            StringBuilder builder = new StringBuilder();
++            while (!process.StandardOutput.EndOfStream)
++            {
++                string line = process.StandardOutput.ReadLine();
++                builder.Append(line);
++            }
+
+-            StringBuilder builder = new StringBuilder();
+-            while (!process.StandardOutput.EndOfStream)
+-            {
+-                string line = process.StandardOutput.ReadLine();
+-                builder.Append(line);
+-            }
+</code></pre>
+
+<p>Finally, output!  But <code>ReadLine</code> was eating up the newline character, need to add it back.</p>
+
+<h4 id="toc_23">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>             while (!process.StandardOutput.EndOfStream)
+             {
+                 string line = process.StandardOutput.ReadLine();
+-                builder.Append(line);
++                builder.AppendLine(line);
+             }
+
+             StringBuilder buildForError = new StringBuilder();
+             while (!process.StandardError.EndOfStream)
+             {
+                 string line = process.StandardError.ReadLine();
+-                buildForError.Append(line);
++                buildForError.AppendLine(line);
+             }
+</code></pre>
+
+<p><code>tt</code> actually only outputs <code>PM</code> or <code>AM</code>.  Need to add hour and minute too.</p>
+
+<h4 id="toc_24">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<pre><code>-            string tempMD =string.Format(&quot;automark-{0:yyyy-MM-dd-tt}.md&quot;, DateTime.Now);
++            string tempMD =string.Format(&quot;automark-{0:yyyy-MM-dd-hh-mm-tt}.md&quot;, DateTime.Now);
+             System.IO.File.WriteAllText(tempMD, builder.ToString());
+             System.Diagnostics.Process.Start(tempMD);
+</code></pre>
+
+<h3 id="toc_25">Conclusion</h3>
+
+<p>You just watched how this file got generated from a Visual Studio extension that ran the result of a command line tool for extracting diffs from a local git repository and from Chrome visits to Stack Overflow, and turn it into markdown, suitable for publishing a blog post!</p>
+
+<p>You can give <a href="https://github.com/chrisparnin/automark">automark</a> a shot yourself!</p>
+
+    </div>
+    <ul class="tag_box inline">
+      <li><i class="icon-folder-open"></i></li>
+    </ul>
+    <ul class="tag_box inline">
+      <li><i class="icon-tags"></i></li>
+    </ul>
+    <hr>
+    <div class="pagination">
+      <ul>
+          <li class="prev"><a href="/articles/2013/09/deploying-native-binaries-with-visual-studio-extensions" title="Deploying native binaries with Visual Studio extensions">&larr; Previous</a></li>
+
+          <li><a href="/articles/archive">Archive</a></li>
+
+          <li class="next"><a href="/articles/2013/05/api-diaries-twilio" title="Api Diaries - Twilio">Next &rarr;</a></li>
+      </ul>
+    </div>
+    <hr>
+    
+  </div>
+</div>
+
+
+      </div>
+
+      <hr>
+      <div class="footer">
+        <p>&copy; Chris Parnin 2013
+          with help from <a href="http://ruhoh.com" target="_blank" title="The Definitive Technical Blogging Framework">ruhoh</a>
+          and <a href="http://twitter.github.com/bootstrap/" target="_blank">Twitter Bootstrap</a>
+        </p>
+      </div>
+
+    </div> <!-- /container -->
+
+    
+    
+  </body>
+</html>

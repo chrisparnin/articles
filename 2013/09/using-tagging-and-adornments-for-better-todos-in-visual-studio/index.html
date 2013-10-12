@@ -12,12 +12,9 @@
     <![endif]-->
 
     <!-- Le styles -->
-    <link href="/articles/assets/twitter/stylesheets/bootstrap.min.css?0.4349626054075697" type="text/css" rel="stylesheet" media="all">
-<link href="/articles/assets/twitter/stylesheets/style.css?0.46137205208850507" type="text/css" rel="stylesheet" media="all">
-<link href="/articles/assets/twitter/widgets/google_prettify/stylesheets/twitter-bootstrap.css?0.0925742282655897" type="text/css" rel="stylesheet" media="all">
-
-    
-
+<link href='/articles/assets/stylesheets/bootstrap.min-88238289010db19359d2181e634e95cd.css' type='text/css' rel='stylesheet' media='all'>
+<link href='/articles/assets/stylesheets/style-e81fa375b231bedf6cb2dbc6653570cc.css' type='text/css' rel='stylesheet' media='all'>
+<link href='/articles/assets/stylesheets/diff-colorize-869a53ec090fceb635b615cc3c3775d3.css' type='text/css' rel='stylesheet' media='all'>
     <!-- Le fav and touch icons -->
   <!-- Update these with your own images
     <link rel="shortcut icon" href="images/favicon.ico">
@@ -25,6 +22,18 @@
     <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
     <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
   -->
+
+
+
+<!--<link href="https://cdnjs.cloudflare.com/ajax/libs/prettify/r224/prettify.css" type="text/css" rel="stylesheet" />-->
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js">
+</script> 
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prettify/r224/prettify.js">
+</script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js">
+</script>
+<script src="/articles/assets/javascripts/diff-colorize.js"></script>
+
   </head>
 
   <body>
@@ -51,7 +60,8 @@
     <div class="container-narrow">
 
       <div class="content">
-        <div class="page-header">
+        
+<div class="page-header">
   <h1>Using Tagging and Adornments for better TODOs in Visual Studio. </h1>
 </div>
 
@@ -470,28 +480,15 @@ internal class TodoTagProvider : IViewTaggerProvider
     <hr>
     <div class="pagination">
       <ul>
-          <li class="prev"><a href="/articles/2013/09/deploying-native-binaries-with-visual-studio-extensions" title="Deploying native binaries with Visual Studio extensions">&larr; Previous</a></li>
+          <li class="prev"><a href="/articles/2013/04/why-your-academic-blog-post-is-worth-200-000" title="Why Your Academic Blog Post is Worth $200,000">&larr; Previous</a></li>
 
           <li><a href="/articles/archive">Archive</a></li>
 
-          <li class="next disabled"><a>Next &rarr;</a>
+          <li class="next"><a href="/articles/2013/09/parse-git-log-output-in-c" title="Parse git log output in C#">Next &rarr;</a></li>
       </ul>
     </div>
     <hr>
-    <div id="disqus_thread"></div>
-<script>
-    var disqus_developer = 1;
-    var disqus_shortname = 'chrisparnin-articles'; // required: replace example with your forum shortname
-    /* * * DON'T EDIT BELOW THIS LINE * * */
-    (function() {
-        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
-        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-    })();
-</script>
-<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
-
+    
   </div>
 </div>
 
@@ -508,21 +505,7 @@ internal class TodoTagProvider : IViewTaggerProvider
 
     </div> <!-- /container -->
 
-    <!-- Google Prettify -->
-<script src="http://cdnjs.cloudflare.com/ajax/libs/prettify/188.0.0/prettify.js"></script>
-<script>
-  var pres = document.getElementsByTagName("pre");
-  for (var i=0; i < pres.length; ++i) {
-    pres[i].className = "prettyprint linenums";
-  }
-  prettyPrint();
-</script>
-<!-- end Google Prettify -->
-    <script>
-  var _gaq=[['_setAccount','UA-40288773-1'],['_trackPageview']];
-  (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
-  g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
-  s.parentNode.insertBefore(g,s)}(document,'script'));
-</script>
+    
+    
   </body>
 </html>

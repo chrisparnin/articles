@@ -2,779 +2,117 @@
 <rss version="2.0">
   <channel>
     <title>Chris Parnin</title>
+    <description>Chris Parnin</description>
     <link>http://chrisparnin.github.io</link>
-    <pubDate>2013-09-28 22:06:23 -0400</pubDate>
+    <pubDate>2013-10-12</pubDate>
     <item>
-      <title>Using Tagging and Adornments for better TODOs in Visual Studio.</title>
-      <link>http://chrisparnin.github.io/articles/2013/09/using-tagging-and-adornments-for-better-todos-in-visual-studio</link>
-      <pubDate>2013-09-27</pubDate>
-      <description>&lt;p&gt;Visual Studio actually provides a powerful framework for making custom extensions to the editor while keeping the code surprisingly simple. &lt;/p&gt;
+      <title>About</title>
+      <link>http://chrisparnin.github.io/articles/about</link>
+      <description>&lt;h3 id="toc_0"&gt;A collection of articles&lt;/h3&gt;
 
-&lt;p&gt;Imagine if you wanted to make a &lt;code&gt;// TODO&lt;/code&gt; note appear more distinctive as well as provide custom actions.&lt;/p&gt;
+&lt;p&gt;This site is intended to collect short topical articles about software development and research. More in depth articles can be found at &lt;a href="http://blog.ninlabs.com"&gt;http://blog.ninlabs.com&lt;/a&gt;&lt;/p&gt;
 
-&lt;p&gt;&lt;img src="/articles/assets/media/todo-ex.png" alt="TodoExample"&gt;&lt;/p&gt;
+&lt;h3 id="toc_1"&gt;Author&lt;/h3&gt;
 
-&lt;p&gt;With Visual Studio Extensions and MEF, you can make direct graphical changes to the editor with an &lt;code&gt;IAdornmentLayer&lt;/code&gt;. But if you want to support custom editor actions and more interactivity, it is worth it to also create an &lt;code&gt;ITagger&lt;/code&gt;. This post will show how you can insert tags into the &lt;code&gt;TextBuffer&lt;/code&gt; and query those to render custom adornments.&lt;/p&gt;
-
-&lt;h4 id="toc_0"&gt;Adornments&lt;/h4&gt;
-
-&lt;p&gt;First, we create a class that will respond to text view creation events and create an &lt;code&gt;IAdornmentLayer&lt;/code&gt;&lt;/p&gt;
-
-&lt;h5 id="toc_1"&gt;TodoArdornmentFactory.cs&lt;/h5&gt;
-
-&lt;p&gt;We provide MEF attributes so that the class will merge into the  &lt;code&gt;IWpfTextViewCreationListener&lt;/code&gt; MEF container.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;/// &amp;lt;summary&amp;gt;
-/// Establishes an &amp;lt;see cref=&amp;quot;IAdornmentLayer&amp;quot;/&amp;gt; to place the adornment on and exports the &amp;lt;see cref=&amp;quot;IWpfTextViewCreationListener&amp;quot;/&amp;gt;
-/// that instantiates the adornment on the event of a &amp;lt;see cref=&amp;quot;IWpfTextView&amp;quot;/&amp;gt;&amp;#39;s creation
-/// &amp;lt;/summary&amp;gt;
-[Export(typeof(IWpfTextViewCreationListener))]
-[ContentType(&amp;quot;text&amp;quot;)]
-[TextViewRole(PredefinedTextViewRoles.Document)]
-internal sealed class TodoArdornmentFactory : IWpfTextViewCreationListener
-{
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;MEF magic that will provide the adornment layer we can use when drawing adornments.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    /// &amp;lt;summary&amp;gt;
-    /// Defines the adornment layer for the adornment. This layer is ordered 
-    /// after the selection layer in the Z-order
-    /// &amp;lt;/summary&amp;gt;
-    [Export(typeof(AdornmentLayerDefinition))]
-    [Name(&amp;quot;TodoArdornment&amp;quot;)]
-    [Order(After = PredefinedAdornmentLayers.Selection, Before = PredefinedAdornmentLayers.Text)]
-    [TextViewRole(PredefinedTextViewRoles.Document)]
-    public AdornmentLayerDefinition editorAdornmentLayer = null;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Create a new Adornment in response to text view creation.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    public void TextViewCreated(IWpfTextView textView)
-    {
-        new TodoArdornment(textView);
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h5 id="toc_2"&gt;TodoArdornment.cs&lt;/h5&gt;
-
-&lt;p&gt;Code responsible for deciding where to drawn adornments over text buffer and how to draw it.&lt;/p&gt;
-
-&lt;p&gt;The two most important things we need to handle in the constructor is getting the &lt;code&gt;TodoArdornment&lt;/code&gt; layer we specified in the Factory, and listen for changes to the text editor.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    public TodoArdornment(IWpfTextView view)
-    {
-        _view = view;
-        _layer = view.GetAdornmentLayer(&amp;quot;TodoArdornment&amp;quot;);
-
-        //Listen to any event that changes the layout (text changes, scrolling, etc)
-        _view.LayoutChanged += OnLayoutChanged;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Now we respond to text editor changes.  Note, this happens a lot, even with simple scrolling!&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    private void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
-    {
-        foreach (ITextViewLine line in e.NewOrReformattedLines)
-        {
-            this.CreateVisuals(line);
-        }
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Next, we can scan code in the current viewport and check if it has a TODO.
-But first, an aside.  Apparently, it not so simple to get string of text inside of a &lt;code&gt;ITextViewLine&lt;/code&gt;.  Let&amp;#39;s define a method &lt;code&gt;TryGetText&lt;/code&gt; as provided by Jared Parson via twitter.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    /// &amp;lt;summary&amp;gt;
-    /// This will get the text of the ITextView line as it appears in the actual user editable 
-    /// document. 
-    /// jared parson: https://gist.github.com/4320643
-    /// &amp;lt;/summary&amp;gt;
-    public static bool TryGetText(IWpfTextView textView, ITextViewLine textViewLine, out string text)
-    {
-        var extent = textViewLine.Extent;
-        var bufferGraph = textView.BufferGraph;
-        try
-        {
-            var collection = bufferGraph.MapDownToSnapshot(extent, SpanTrackingMode.EdgeInclusive, textView.TextSnapshot);
-            var span = new SnapshotSpan(collection[0].Start, collection[collection.Count - 1].End);
-            //text = span.ToString();
-            text = span.GetText();
-            return true;
-        }
-        catch
-        {
-            text = null;
-            return false;
-        }
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Ok.  Let&amp;#39;s match the line of text!&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    Regex todoLineRegex = new Regex(@&amp;quot;\/\/\s*TODO\b&amp;quot;);
-
-    private void CreateVisuals(ITextViewLine line)
-    {
-        IWpfTextViewLineCollection textViewLines = _view.TextViewLines;
-        string text = null;
-        if (TryGetText(_view, line, out text))
-        {
-            var match = todoLineRegex.Match(text);
-            if (match.Success)
-            {
-                int matchStart = line.Start.Position + span.Index;
-                var span = new SnapshotSpan(_view.TextSnapshot, Span.FromBounds(matchStart, matchStart + match.Length));
-                SetBoundary(textViewLines, span);
-            }
-        }
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Finally, let&amp;#39;s draw something!!!&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    public void SetBoundary(IWpfTextViewLineCollection textViewLines, SnapshotSpan span)
-    {
-        Geometry g = textViewLines.GetMarkerGeometry(span);
-        if (g != null)
-        {
-            GeometryDrawing drawing = new GeometryDrawing(_brush, _pen, g);
-            drawing.Freeze();
-
-            DrawingImage drawingImage = new DrawingImage(drawing);
-            drawingImage.Freeze();
-
-            Image image = new Image();
-            image.Source = drawingImage;
-
-            //Align the image with the top of the bounds of the text geometry
-            Canvas.SetLeft(image, g.Bounds.Left);
-            Canvas.SetTop(image, g.Bounds.Top);
-
-            _layer.AddAdornment(AdornmentPositioningBehavior.TextRelative, span, null, image, null);
-        }
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id="toc_3"&gt;Tagging&lt;/h4&gt;
-
-&lt;p&gt;Now, we could stop here if we just want the visual effect.  But if we want to perform actions and other interactions, we need to introduce tagging.&lt;/p&gt;
-
-&lt;p&gt;First we need to make some updates to our previous code, and then introduce  a tag provider, tags, and actions.&lt;/p&gt;
-
-&lt;h5 id="toc_4"&gt;TodoArdornmentFactory.cs&lt;/h5&gt;
-
-&lt;p&gt;This service will be used to help find tags in the editor.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    [Import]
-    private IViewTagAggregatorFactoryService ViewTagAggregatorFactoryService { get; set; }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Update to pass in tag factory service.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    public void TextViewCreated(IWpfTextView textView)
-    {
-        new TodoArdornment(textView, ViewTagAggregatorFactoryService.CreateTagAggregator&amp;lt;TodoGlyphTag&amp;gt;( textView ));
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h5 id="toc_5"&gt;TodoArdornment.cs&lt;/h5&gt;
-
-&lt;p&gt;Save tag service.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    public TodoArdornment(IWpfTextView view, ITagAggregator&amp;lt;TodoGlyphTag&amp;gt; aggregrator)
-    {
-        ...
-        _createTagAggregator = aggregrator;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Instead of scanning code ourselves, we move that code the the tagger and instead ask the tag service for tags held in the span.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    private void CreateVisuals(ITextViewLine line)
-    {
-        ...
-        foreach (var tag in this._createTagAggregator.GetTags(line.Extent))
-        {
-            foreach (var span in tag.Span.GetSpans(_view.TextSnapshot))
-            {
-                SetBoundary(textViewLines, span);
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h5 id="toc_6"&gt;TodoArdornmentFactory.cs&lt;/h5&gt;
-
-&lt;p&gt;We create a tagger that will be associated with a text view.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;[Export(typeof(IViewTaggerProvider))]
-[ContentType(&amp;quot;text&amp;quot;)]
-[Order(Before = &amp;quot;default&amp;quot;)]
-[TagType(typeof(TodoGlyphTag))]
-internal class TodoTagProvider : IViewTaggerProvider
-{
-    Dictionary&amp;lt;Microsoft.VisualStudio.Text.Editor.ITextView, TodoTagger&amp;gt; taggers = new Dictionary&amp;lt;Microsoft.VisualStudio.Text.Editor.ITextView, TodoTagger&amp;gt;();
-
-    public ITagger&amp;lt;T&amp;gt; CreateTagger&amp;lt;T&amp;gt;(Microsoft.VisualStudio.Text.Editor.ITextView textView, Microsoft.VisualStudio.Text.ITextBuffer buffer) where T : ITag
-    {
-        if (buffer == null || textView == null)
-        {
-            return null;
-        }
-
-        //make sure we are tagging only the top buffer 
-        if (buffer == textView.TextBuffer)
-        {
-            if (!taggers.ContainsKey(textView))
-            {
-                taggers[textView] = new TodoTagger(textView);
-            }
-            return taggers[textView] as ITagger&amp;lt;T&amp;gt;;
-        }
-        else return null;
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h5 id="toc_7"&gt;TodoGlyphTag.cs&lt;/h5&gt;
-
-&lt;p&gt;Create a Tag class, which doesn&amp;#39;t do much at the moment.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;public class TodoGlyphTag : SmartTag
-{
-    public TodoGlyphTag(SmartTagType smartTagType, ReadOnlyCollection&amp;lt;SmartTagActionSet&amp;gt; actionSets)
-        : base(smartTagType, actionSets)
-    {
-
-    }
-    internal void Execute(Point position, FrameworkElement frameworkElement)
-    {
-        // Smart Tag, Intellisense.
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h5 id="toc_8"&gt;TodoTagger.cs&lt;/h5&gt;
-
-&lt;pre&gt;&lt;code&gt;public class TodoTagger : ITagger&amp;lt;TodoGlyphTag&amp;gt;
-{
-    public event EventHandler&amp;lt;Microsoft.VisualStudio.Text.SnapshotSpanEventArgs&amp;gt; TagsChanged;
-    Regex todoLineRegex = new Regex(@&amp;quot;\/\/\s*TODO\b&amp;quot;);
-    ITextView _textView;
-
-    internal TodoTagger(ITextView textView)
-    {
-        _textView = textView;
-        _textView.LayoutChanged += OnLayoutChanged;
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;We listen and response to &lt;code&gt;_textView.LayoutChanged&lt;/code&gt; and let others that this has caused tags to change.  This lets clients know to call &lt;code&gt;GetTags&lt;/code&gt; so we can give them the newest sets of tags.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    private void OnLayoutChanged(object sender, TextViewLayoutChangedEventArgs e)
-    {
-        foreach (var span in e.NewOrReformattedSpans)
-        {
-            if (TagsChanged != null)
-            {
-                TagsChanged(this, new SnapshotSpanEventArgs(span));
-            }
-        }
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;&lt;code&gt;GetTags&lt;/code&gt; does the basically the same thing that we used to do in TodoAdornment.cs&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    public IEnumerable&amp;lt;ITagSpan&amp;lt;TodoGlyphTag&amp;gt;&amp;gt; GetTags(Microsoft.VisualStudio.Text.NormalizedSnapshotSpanCollection spans)
-    {
-        foreach (var span in spans)
-        {
-            String text = span.GetText();
-            var match = todoLineRegex.Match(text);
-            if (match.Success)
-            {
-                var point = span.Start.Add(match.Index);
-                var spanNew = new SnapshotSpan(span.Snapshot, new Span(point.Position, match.Length));
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Now... we want to do something different.  We want to provide a set of actions belonging to the tag, but only if the caret is current on the same line as the tag:&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;                ITextViewLine line = null;
-                try
-                {
-                    line = _textView.Caret.ContainingTextViewLine;
-                }
-                catch( Exception ex )
-                {
-                    continue;
-                }
-                var actions = new ReadOnlyCollection&amp;lt;SmartTagActionSet&amp;gt;(new SmartTagActionSet[]{}.ToList());
-                if (line != null &amp;amp;&amp;amp;
-                    _textView.Caret.ContainingTextViewLine.ContainsBufferPosition(span.Start))
-                {
-                     actions = GetSmartTagActions(spanNew);
-                }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Now we can create our tag!&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;                yield return new TagSpan&amp;lt;TodoGlyphTag&amp;gt;(spanNew, 
-                    new TodoGlyphTag(SmartTagType.Ephemeral, actions)
-                );
-            }
-        }
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h5 id="toc_9"&gt;AttachAction.cs&lt;/h5&gt;
-
-&lt;p&gt;Defining actions that will appear in the menu.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;internal class AttachAction : ISmartTagAction
-{
-    private ITrackingSpan m_span;
-    private string m_upper;
-    private string m_display;
-    private ITextSnapshot m_snapshot;
-    private bool m_enabled = true;
-
-    public AttachAction(ITrackingSpan span)
-    {
-        m_span = span;
-        m_snapshot = span.TextBuffer.CurrentSnapshot;
-        m_upper = span.GetText(m_snapshot).ToUpper();
-        m_display = &amp;quot;Attach&amp;quot;;
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;This we can use to hook into external services...&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    public void Invoke()
-    {
-        // Code for posting reminder to viewport...
-        m_enabled = false;
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Rest of action properties.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    public string DisplayText
-    {
-        get { return m_display; }
-    }
-    public ImageSource Icon
-    {
-        get { return null; }
-    }
-    public bool IsEnabled
-    {
-        get { return m_enabled; }
-    }
-
-    public ISmartTagSource Source
-    {
-        get;
-        private set;
-    }
-
-    public ReadOnlyCollection&amp;lt;SmartTagActionSet&amp;gt; ActionSets
-    {
-        get { return null; }
-    }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h5 id="toc_10"&gt;TodoTagger.cs&lt;/h5&gt;
-
-&lt;p&gt;Back to the Tagger, let&amp;#39;s get our actions for a tag.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    private ReadOnlyCollection&amp;lt;SmartTagActionSet&amp;gt; GetSmartTagActions(SnapshotSpan span)
-    {
-        List&amp;lt;SmartTagActionSet&amp;gt; actionSetList = new List&amp;lt;SmartTagActionSet&amp;gt;();
-        List&amp;lt;ISmartTagAction&amp;gt; actionList = new List&amp;lt;ISmartTagAction&amp;gt;();
-
-        ITrackingSpan trackingSpan = span.Snapshot.CreateTrackingSpan(span, SpanTrackingMode.EdgeInclusive);
-        actionList.Add(new AttachAction(trackingSpan, this));
-        SmartTagActionSet actionSet = new SmartTagActionSet(actionList.AsReadOnly());
-        actionSetList.Add(actionSet);
-        return actionSetList.AsReadOnly();
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h4 id="toc_11"&gt;Result&lt;/h4&gt;
-
-&lt;p&gt;&lt;img src="/articles/assets/media/attach.png" alt="attach"&gt;&lt;/p&gt;
-
-&lt;p&gt;Now, we can bring up an menu and use it to do other things, like attach the reminder to viewport, or link it to an external service like &lt;a href="rememberthemilk.com/"&gt;Remember the Milk&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src="/articles/assets/media/viewport.png" alt="viewport"&gt;&lt;/p&gt;
+&lt;p&gt;See more at &lt;a href="http://www.cc.gatech.edu/%7Evector"&gt;www.cc.gatech.edu/~vector&lt;/a&gt;&lt;/p&gt;
 </description>
     </item>
     <item>
-      <title>Deploying native binaries with Visual Studio extensions</title>
-      <link>http://chrisparnin.github.io/articles/2013/09/deploying-native-binaries-with-visual-studio-extensions</link>
-      <pubDate>2013-09-17</pubDate>
-      <description>&lt;h3 id="toc_0"&gt;Deploying Native Binaries&lt;/h3&gt;
-
-&lt;p&gt;If your extension depends on a native binary, you have to do some tricks to get the binary to be copied into the experimental hive directory for testing and including in your VSIX for deployment.&lt;/p&gt;
-
-&lt;p&gt;I was doing some manual copies in my post build event that was brittle, and had to explicitly include the native binaries as &lt;code&gt;content&lt;/code&gt;.&lt;/p&gt;
-
-&lt;h3 id="toc_1"&gt;Another way&lt;/h3&gt;
-
-&lt;p&gt;&lt;a href="https://github.com/nulltoken"&gt;nulltoken&lt;/a&gt; had given out a helpful hint on using msbuild directives to stream-line this process:&lt;/p&gt;
-
-&lt;blockquote&gt;
-&lt;p&gt;You might be willing to glance at
-&lt;a href="https://github.com/libgit2/libgit2sharp/blob/vNext/LibGit2Sharp/CopyNativeDependencies.targets"&gt;https://github.com/libgit2/libgit2sharp/blob/vNext/LibGit2Sharp/CopyNativeDependencies.targets&lt;/a&gt; and the way it&amp;#39;s being used in &lt;code&gt;LibGit2Sharp.Tests.csproj&lt;/code&gt;&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;h3 id="toc_2"&gt;How to do it&lt;/h3&gt;
-
-&lt;p&gt;I adapted this approach for my project. First, I define a reference to native binaries that live in the nuget directory.  &lt;code&gt;$(MSBuildProjectDirectory)&lt;/code&gt; refers to directory containing the .csproj file.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;PropertyGroup&amp;gt;
-    &amp;lt;NativeBinariesDirectory&amp;gt;$(MSBuildProjectDirectory)\..\packages\LibGit2Sharp.0.13.0.0\NativeBinaries&amp;lt;/NativeBinariesDirectory&amp;gt;
-&amp;lt;/PropertyGroup&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;The nice thing about using MSBuild directives is that you can use pattern matching to include files.
-&lt;code&gt;$(NativeBinariesDirectory)\**\*.*&amp;quot;&lt;/code&gt; specifies all the native files I want to include in the project.
-The &lt;code&gt;Link&lt;/code&gt; directive describes how the file is displayed in the solution explorer.  &lt;code&gt;CopyToOutputDirectory&lt;/code&gt; is used to copy the binaries in the output bin directory (but not vsix).  &lt;code&gt;IncludeInVSIX&lt;/code&gt; is what makes sure these files will be included in the experimental hive extension folder as well as the packaged .VSIX file.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;lt;ItemGroup&amp;gt;
-    &amp;lt;Content Include=&amp;quot;$(NativeBinariesDirectory)\**\*.*&amp;quot;&amp;gt;
-        &amp;lt;Link&amp;gt;NativeBinaries\%(RecursiveDir)%(Filename)%(Extension)&amp;lt;/Link&amp;gt;
-        &amp;lt;CopyToOutputDirectory&amp;gt;PreserveNewest&amp;lt;/CopyToOutputDirectory&amp;gt;
-        &amp;lt;IncludeInVSIX&amp;gt;true&amp;lt;/IncludeInVSIX&amp;gt;
-    &amp;lt;/Content&amp;gt;
-&amp;lt;/ItemGroup&amp;gt;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id="toc_3"&gt;In conclusion&lt;/h3&gt;
-
-&lt;p&gt;Finally, I initially tried nulltoken&amp;#39;s solution directly, but couldn&amp;#39;t find out how to get it to work in the context of a visual studio extension.&lt;/p&gt;
-
-&lt;p&gt;This was useful for helping me understand some of the concepts: &lt;a href="http://stackoverflow.com/questions/1292351/including-content-files-in-csproj-that-are-outside-the-project-cone"&gt;Relevant Stack Overflow quesition&lt;/a&gt;&lt;/p&gt;
+      <title>Archive</title>
+      <link>http://chrisparnin.github.io/articles/archive</link>
+      <description>
+  &lt;h2&gt;2013&lt;/h2&gt;
+    &lt;h3&gt;May&lt;/h3&gt;
+    &lt;ul&gt;
+      &lt;li&gt;&lt;span&gt;2013-05-20&lt;/span&gt; &amp;raquo; &lt;a href="/articles/2013/05/api-diaries-twilio"&gt;Api Diaries - Twilio&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+    &lt;h3&gt;October&lt;/h3&gt;
+    &lt;ul&gt;
+      &lt;li&gt;&lt;span&gt;2013-10-12&lt;/span&gt; &amp;raquo; &lt;a href="/articles/2013/10/creating-a-visual-studio-extension-shim-for-automark"&gt;Creating a Visual Studio extension shim for automark&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+    &lt;h3&gt;September&lt;/h3&gt;
+    &lt;ul&gt;
+      &lt;li&gt;&lt;span&gt;2013-09-17&lt;/span&gt; &amp;raquo; &lt;a href="/articles/2013/09/deploying-native-binaries-with-visual-studio-extensions"&gt;Deploying native binaries with Visual Studio extensions&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;span&gt;2013-09-05&lt;/span&gt; &amp;raquo; &lt;a href="/articles/2013/09/parse-git-log-output-in-c"&gt;Parse git log output in C#&lt;/a&gt;&lt;/li&gt;
+      &lt;li&gt;&lt;span&gt;2013-09-27&lt;/span&gt; &amp;raquo; &lt;a href="/articles/2013/09/using-tagging-and-adornments-for-better-todos-in-visual-studio"&gt;Using Tagging and Adornments for better TODOs in Visual Studio.&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+    &lt;h3&gt;April&lt;/h3&gt;
+    &lt;ul&gt;
+      &lt;li&gt;&lt;span&gt;2013-04-23&lt;/span&gt; &amp;raquo; &lt;a href="/articles/2013/04/why-your-academic-blog-post-is-worth-200-000"&gt;Why Your Academic Blog Post is Worth $200,000&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
 </description>
     </item>
     <item>
-      <title>Parse git log output in C#</title>
-      <link>http://chrisparnin.github.io/articles/2013/09/parse-git-log-output-in-c</link>
-      <pubDate>2013-09-05</pubDate>
-      <description>&lt;p&gt;A simple example for parsing the output of git log in pure C#.&lt;/p&gt;
-
-&lt;h3 id="toc_0"&gt;Getting git log output&lt;/h3&gt;
-
-&lt;p&gt;Get output of &lt;code&gt;git log --name-status&lt;/code&gt; by specifying path of git repo.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    public static string ListShaWithFiles(string path)
-    {
-        var output = RunProcess(string.Format(&amp;quot; --git-dir={0}/.git --work-tree={1} log --name-status&amp;quot;, path.Replace(&amp;quot;\\&amp;quot;, &amp;quot;/&amp;quot;), path.Replace(&amp;quot;\\&amp;quot;, &amp;quot;/&amp;quot;)));
-        return output;
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Helper for getting command line output&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    private static string RunProcess(string command)
-    {
-        // Start the child process.
-        Process p = new Process();
-        // Redirect the output stream of the child process.
-        p.StartInfo.UseShellExecute = false;
-        p.StartInfo.RedirectStandardOutput = true;
-        p.StartInfo.FileName = Config.GitExectuable;
-        p.StartInfo.Arguments = command;
-        p.Start();
-        // Read the output stream first and then wait.
-        string output = p.StandardOutput.ReadToEnd();
-        p.WaitForExit();
-        return output;
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id="toc_1"&gt;Parse output&lt;/h3&gt;
-
-&lt;p&gt;Basic parse loop for parsing a commit.  Will show how to populate next.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;        using (var strReader = new StringReader(output))
-        {
-            do
-            {
-                var line = strReader.ReadLine();
-
-                if( line.StartsWith(&amp;quot;commit &amp;quot;) )
-                {
-                }
-
-                if ( StartsWithHeader(line) )
-                {
-                }
-
-                if (string.IsNullOrEmpty(line) )
-                {
-                    // commit message divider
-                }
-
-                if (line.Length &amp;gt; 0 &amp;amp;&amp;amp; line[0] == &amp;#39;\t&amp;#39;)
-                { 
-                    // commit message.
-                }
-
-                if (line.Length &amp;gt; 1 &amp;amp;&amp;amp; Char.IsLetter(line[0]) &amp;amp;&amp;amp; line[1] == &amp;#39;\t&amp;#39;)
-                {
-                    // file status
-                }
-            }
-            while (strReader.Peek() != -1);
-        }
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Helper function to help check if a line is a header.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    private bool StartsWithHeader(string line)
-    {
-        if( line.Length &amp;gt; 0 &amp;amp;&amp;amp; char.IsLetter( line[0] ) )
-        {
-            var seq = line.SkipWhile( ch =&amp;gt; Char.IsLetter(ch) &amp;amp;&amp;amp; ch != &amp;#39;:&amp;#39; );
-            return seq.FirstOrDefault() == &amp;#39;:&amp;#39;;
-        }
-        return false;
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id="toc_2"&gt;Storing results.&lt;/h3&gt;
-
-&lt;p&gt;Class for holding commits &lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;public class GitCommit
-{
-    public GitCommit()
-    {
-        Headers = new Dictionary&amp;lt;string, string&amp;gt;();
-        Files = new List&amp;lt;GitFileStatus&amp;gt;();
-        Message = &amp;quot;&amp;quot;;
-    }
-
-    public Dictionary&amp;lt;string, string&amp;gt; Headers { get; set; }
-    public string Sha { get; set; }
-    public string Message { get; set; }
-    public List&amp;lt;GitFileStatus&amp;gt; Files { get; set; }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;and File status&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;public class GitFileStatus
-{
-    public string Status { get; set; }
-    public string File { get; set; }
-}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Populating results&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;        GitCommit commit = null;
-        var commits = new List&amp;lt;GitCommit&amp;gt;();
-        bool processingMessage = false;
-        using (var strReader = new StringReader(output))
-        {
-            do
-            {
-                var line = strReader.ReadLine();
-
-                if( line.StartsWith(&amp;quot;commit &amp;quot;) )
-                {
-                    if (commit != null)
-                        commits.Add(commit);
-                    commit = new GitCommit();
-                    commit.Sha = line.Split(&amp;#39; &amp;#39;)[1];
-                }
-
-                if ( StartsWithHeader(line) )
-                {
-                    var header = line.Split(&amp;#39;:&amp;#39;)[0];
-                    var val = string.Join(&amp;quot;:&amp;quot;,line.Split(&amp;#39;:&amp;#39;).Skip(1)).Trim();
-
-                    // headers
-                    commit.Headers.Add(header, val);
-                }
-
-                if (string.IsNullOrEmpty(line) )
-                {
-                    // commit message divider
-                    processingMessage = !processingMessage;
-                }
-
-                if (line.Length &amp;gt; 0 &amp;amp;&amp;amp; line[0] == &amp;#39;\t&amp;#39;)
-                { 
-                    // commit message.
-                    commit.Message += line;
-                }
-
-                if (line.Length &amp;gt; 1 &amp;amp;&amp;amp; Char.IsLetter(line[0]) &amp;amp;&amp;amp; line[1] == &amp;#39;\t&amp;#39;)
-                {
-                    var status = line.Split(&amp;#39;\t&amp;#39;)[0];
-                    var file = line.Split(&amp;#39;\t&amp;#39;)[1];
-                    commit.Files.Add(new GitFileStatus() { Status = status, File = file } );
-                }
-            }
-            while (strReader.Peek() != -1);
-        }
-        if (commit != null)
-            commits.Add(commit);
-
-        return commits;
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;h3 id="toc_3"&gt;Run it all and print back results&lt;/h3&gt;
-
-&lt;pre&gt;&lt;code&gt;    string path = @&amp;quot;C:\DEV\github\Codegrams&amp;quot;;
-    if (args.Length &amp;gt; 0)
-        path = args[0];
-    var output = GitCommands.ListShaWithFiles(path);
-
-    var parser = new ParseGitLog();
-    var commits = parser.Parse(output);
-
-    Console.WriteLine(commits.Count);
-    foreach (var commit in commits)
-    {
-        commit.Print();
-    }
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Print helper&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;    public void Print()
-    {
-        Console.WriteLine(&amp;quot;commit &amp;quot; + Sha);
-        foreach (var key in Headers.Keys)
-        {
-            Console.WriteLine(key + &amp;quot;:&amp;quot; + Headers[key]);
-        }
-        Console.WriteLine();
-        Console.WriteLine(Message);
-        Console.WriteLine();
-        foreach (var file in Files)
-        {
-            Console.WriteLine(file.Status + &amp;quot;\t&amp;quot; + file.File);
-        }
-    }
-&lt;/code&gt;&lt;/pre&gt;
-</description>
-    </item>
-    <item>
-      <title>Api Diaries - Twilio</title>
-      <link>http://chrisparnin.github.io/articles/2013/05/api-diaries-twilio</link>
-      <pubDate>2013-05-20</pubDate>
-      <description>&lt;p&gt;&lt;a href="http://www.twilio.com/"&gt;Twilio&lt;/a&gt; makes telephony dead simple for developers.  A developer should be able to do cool things with their API, like sending text messages and setting up conference calls in under 5 minutes.  Such a company must live or die on API design.&lt;/p&gt;
-
-&lt;p&gt;I was very fortunate to speak with &lt;a href="https://twitter.com/jf"&gt;Joel Franusic&lt;/a&gt; to learn how Twilio engages and understands developers when building their API. The following is a based on our conversation:&lt;/p&gt;
-
-&lt;h3 id="toc_0"&gt;How do they know how to get Api Design right?&lt;/h3&gt;
-
-&lt;h4 id="toc_1"&gt;Monitoring channels&lt;/h4&gt;
-
-&lt;blockquote&gt;
-&lt;p&gt;&amp;quot;We go where we are talked about&amp;quot;&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href="http://forum.twilio.com/twilio"&gt;getsatisfaction.com&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href="http://stackoverflow.com/questions/tagged/twilio"&gt;Stack Overflow&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href="https://twitter.com/search/realtime?q=%23twilio"&gt;twitter&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href="https://www.hnsearch.com/search#request/all&amp;amp;q=twilio"&gt;Hacker News&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;email (lots)&lt;/li&gt;
+      <title>Categories</title>
+      <link>http://chrisparnin.github.io/articles/categories</link>
+      <description>
+&lt;ul class="tag_box inline"&gt;
+  &lt;li&gt;
+    &lt;a href="/articles/categories#advice-ref"&gt;advice &lt;span&gt;1&lt;/span&gt;&lt;/a&gt;
+  &lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;Example tweets:&lt;/p&gt;
-
-&lt;blockquote&gt;
-&lt;p&gt;If any #nodejs #twilio guys could help debug &lt;a href="https://gist.github.com/1314454"&gt;https://gist.github.com/1314454&lt;/a&gt; and why it&amp;#39;s saying not authenticated when I do the request&lt;/p&gt;
-
-&lt;p&gt;.@twilio Why can&amp;#39;t I send an SMS with the words &amp;quot;need to cancel&amp;quot; in it? I keep getting this error: &lt;a href="http://www.twilio.com/docs/errors/21618"&gt;http://www.twilio.com/docs/errors/21618&lt;/a&gt; #janky&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;&lt;strong&gt;There are some challenges with doing this&lt;/strong&gt;.  Currently, these channels are manually monitored by the support team.  Although all channels are attended, the issues and resolutions are not always curated and are often handled in different ways.  At the moment, product review meetings and decisions on customer feedback is based on the &amp;quot;semi-intuitive&amp;quot; recollection of issues, more often than on &amp;quot;hard-data&amp;quot;.&lt;/p&gt;
-
-&lt;h4 id="toc_2"&gt;API Usage data&lt;/h4&gt;
-
-&lt;p&gt;API usage data is used internally to refactor API design and understand their users.  For example, one feature was found to be overly exploited by developers and as a result took too much bandwidth. Developers were using the API to request information about their own data usage (kinda meta).  This was changed to so that they instead &lt;a href="http://www.twilio.com/docs/api/rest/usage-triggers"&gt;register a callback&lt;/a&gt; to know when they are approaching a limit.&lt;/p&gt;
-
-&lt;h4 id="toc_3"&gt;Community building&lt;/h4&gt;
-
-&lt;p&gt;Hackathons, meetups, and live demos are the preferred way to engage with developers.  There is still very much footwork in all this.&lt;/p&gt;
-
-&lt;blockquote&gt;
-&lt;p&gt;&amp;quot;Prizes are bullshit.&amp;quot;&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;Developers are often well off and are not always inspired by monetary rewards.  Prizes and contests are not commonly used, but if a prize is given away, items encouraging learning and hacking are used, such as Knuth books or a Raspberry Pi.&lt;/p&gt;
-
-&lt;p&gt;Closed betas are also used, to get early feedback from some of the heaviest (or most vocal) users.  For example, &lt;a href="http://www.kalzumeus.com/2011/12/19/productizing-twilio-applications/"&gt;Patrick McKenzie&lt;/a&gt; was instrumental in calling for a solution for automated testing of twilio apps.  A closed beta was able to iron out many of the details and work for adding &lt;a href="http://www.twilio.com/docs/api/rest/test-credentials"&gt;this feature&lt;/a&gt;.&lt;/p&gt;
-
-&lt;h4 id="toc_4"&gt;Company culture&lt;/h4&gt;
-
-&lt;p&gt;Understanding developers is also ingrained into the company culture.
-All new hires spend the first two weeks &lt;a href="http://www.zendesk.com/blog/new-employees-answer-support-tickets"&gt;handling support tickets&lt;/a&gt;.  Any employee (including non-devs) can earn street cred by demoing their own twilio app, earning the right to proudly wear the company&amp;#39;s red track jacket.&lt;/p&gt;
-
-&lt;h2 id="toc_5"&gt;Conclusion&lt;/h2&gt;
-
-&lt;p&gt;Companies built on apis must make developers happy.  Understanding developer&amp;#39;s opinions, problems, and usage patterns still involve manual collection, on-the-ground engagement, and ad-hoc analytics.  There are many opportunities to learn and make this space better.&lt;/p&gt;
+  &lt;h3&gt;advice (1)&lt;/h3&gt;
+  &lt;ul&gt;
+      &lt;li&gt;&lt;a href="/articles/2013/04/why-your-academic-blog-post-is-worth-200-000"&gt;Why Your Academic Blog Post is Worth $200,000&lt;/a&gt;&lt;/li&gt;
+  &lt;/ul&gt;
 </description>
     </item>
     <item>
-      <title>Why Your Academic Blog Post is Worth $200,000</title>
-      <link>http://chrisparnin.github.io/articles/2013/04/why-your-academic-blog-post-is-worth-200-000</link>
-      <pubDate>2013-04-23</pubDate>
-      <description>&lt;h2 id="toc_0"&gt;Grab your Audience&amp;#39;s Attention.&lt;/h2&gt;
-
-&lt;p&gt;If you do not blog about your research, you might as well take all your papers and burn them right now.
-&lt;strong&gt;Because no one will read your paper or remember your talk at a conference.&lt;/strong&gt;&lt;/p&gt;
-
-&lt;p&gt;Not because it isn&amp;#39;t wonderful work, but because human bandwidth is terribly limited. Most new memories will fade after a few hours or days, 
-and essentially non-existent after 3 months. In an event as fully packed as a conference, with thousands of people, hundreds of conversations, and dozens of 
-presentations, chances are your presentation will be forgotten against all the other competing memories.&lt;/p&gt;
-
-&lt;p&gt;People&amp;#39;s time and attention costs money.  To get your research presented in 20 minutes to room of 100 people, 
-costs each person easily $2000 (registeration, airfare, and hotel) to be there.  &lt;strong&gt;Collectively, was your talk well-worth $200,000?&lt;/strong&gt;&lt;/p&gt;
-
-&lt;h2 id="toc_1"&gt;Prepare Takeaways&lt;/h2&gt;
-
-&lt;p&gt;Blogging about your research can spread your message to a much bigger room of people.&lt;br&gt;
-But these people do not have 20 minutes, and your writing must reflect that. 
-Further, consider how people consume content: You are competing with several other open tabs from facebook, twitter, etc.&lt;/p&gt;
-
+      <title>Pages</title>
+      <link>http://chrisparnin.github.io/articles/pages</link>
+      <description>
 &lt;ul&gt;
-&lt;li&gt;Most readers will only spend about 10-30 seconds reading your blog post.&lt;/li&gt;
-&lt;li&gt;Stick to only one topic; anything else will derail your message.&lt;/li&gt;
-&lt;li&gt;Prepacked takeaway points can be read quickly and spread through social media, reinforcing your message.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;If you&amp;#39;ve reached an additional 100 visitors, then you&amp;#39;ve doubled your audience for very little additional effort.
-Chances are you will reap other benefits, including research collaborations, consulting offers, increased citations, and people actually reading your paper.&lt;/p&gt;
-
-&lt;h2 id="toc_2"&gt;Foster comments and discussion&lt;/h2&gt;
-
-&lt;p&gt;&lt;strong&gt;Software developers will tear your ideas to shreds: This is a good thing.&lt;/strong&gt;  Software developers&amp;#39; discussion of research can be dismissive, deeply critical, fixate to the point of distraction on minor issues, and may not have the best understanding of methodology. But they often have good intution and can ofter perspectives or scenarios you never imagined and are always worth your consideration. Learn to channel these comments into something positive.&lt;/p&gt;
-
-&lt;p&gt;Go where the developers are: reddit, hacker news, twitter, etc. Do not shy away from engaging the community directly. 
-Perhaps, start with a small audience, maybe a subreddit related to your topic.  Avoid saturating your social networks,
-if you have something worth sharing, even starting with something small, it will spread on its own.  &lt;strong&gt;Be mindful of your social currency: do not expect people to continously tune into your broadcasts.&lt;/strong&gt;&lt;/p&gt;
-
-&lt;h2 id="toc_3"&gt;Bonus Round&lt;/h2&gt;
-
-&lt;p&gt;Since you have your audience&amp;#39;s attention, you might as well ask them for something.
-They can help out by being &lt;a href="https://chrome.google.com/webstore/detail/docsight/ceacnbgdhcnofnomlkmackaennjfmnpc"&gt;trying out your tool&lt;/a&gt;, &lt;a href="http://www.cc.gatech.edu/%7Evector/donatehistory.html"&gt;contributing data&lt;/a&gt;, commenting below, or checking out other articles:&lt;/p&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&lt;a href="http://www.felienne.com/?cat=3"&gt;Felienne Herman&amp;#39;s Blog&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href="http://blog.ninlabs.com"&gt;Ninlabs Research Blog&lt;/a&gt;&lt;/li&gt;
-&lt;li&gt;&lt;a href="http://www.neverworkintheory.org/"&gt;It Will Never Work in Theory&lt;/a&gt;&lt;/li&gt;
+  
+    &lt;li&gt;&lt;a href="/articles/about"&gt;About&lt;/a&gt;&lt;/li&gt;
+  
+  
+    &lt;li&gt;&lt;a href="/articles/archive"&gt;Archive&lt;/a&gt;&lt;/li&gt;
+  
+  
+    &lt;li&gt;&lt;a href="/articles/categories"&gt;Categories&lt;/a&gt;&lt;/li&gt;
+  
+    &lt;li class="active"&gt;&lt;a href="/articles/pages" class="active"&gt;Pages&lt;/a&gt;&lt;/li&gt;
+  
+  
+  
+    &lt;li&gt;&lt;a href="/articles/tags"&gt;Tags&lt;/a&gt;&lt;/li&gt;
+  
+  
+    &lt;li&gt;&lt;a href="/articles"&gt;articles&lt;/a&gt;&lt;/li&gt;
+  
 &lt;/ul&gt;
 </description>
+    </item>
+    <item>
+      <title>Tags</title>
+      <link>http://chrisparnin.github.io/articles/tags</link>
+      <description>
+&lt;ul class="tag_box inline"&gt;
+  &lt;li&gt;
+    &lt;a href="/articles/tags#academic blogging-ref"&gt;academic blogging &lt;span&gt;1&lt;/span&gt;&lt;/a&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;a href="/articles/tags#interview-ref"&gt;interview &lt;span&gt;1&lt;/span&gt;&lt;/a&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;a href="/articles/tags#api design-ref"&gt;api design &lt;span&gt;1&lt;/span&gt;&lt;/a&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+  &lt;h3 id="academic blogging-ref"&gt;academic blogging&lt;/h3&gt;
+    &lt;li&gt;&lt;a href="/articles/2013/04/why-your-academic-blog-post-is-worth-200-000"&gt;Why Your Academic Blog Post is Worth $200,000&lt;/a&gt;&lt;/li&gt;
+  &lt;h3 id="interview-ref"&gt;interview&lt;/h3&gt;
+    &lt;li&gt;&lt;a href="/articles/2013/05/api-diaries-twilio"&gt;Api Diaries - Twilio&lt;/a&gt;&lt;/li&gt;
+  &lt;h3 id="api design-ref"&gt;api design&lt;/h3&gt;
+    &lt;li&gt;&lt;a href="/articles/2013/05/api-diaries-twilio"&gt;Api Diaries - Twilio&lt;/a&gt;&lt;/li&gt;
+ 
+</description>
+    </item>
+    <item>
+      <title>articles</title>
+      <link>http://chrisparnin.github.io/articles</link>
+      <description>A collection of research and coding articles.</description>
     </item>
   </channel>
 </rss>
