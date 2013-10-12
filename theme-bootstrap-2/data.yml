@@ -1,0 +1,13 @@
+title : Chris Parnin
+tagline: articles
+author :
+  name : Chris Parnin
+  email : chris.parnin@gmail.com
+  github : chrisparnin 
+  twitter : chrisparnin
+  feedburner : feedname
+
+navigation :
+  - about.md
+  - archive.html
+  - tags.html
