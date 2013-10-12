@@ -3,6 +3,7 @@ title: Parse git log output in C#
 date: '2013-09-05'
 description:
 categories:
+layout: "posts-narrative"
 ---
 
 A simple example for parsing the output of git log in pure C#.

@@ -3,7 +3,7 @@
 
 # This helps parsers (and hosting platforms) determine which version is needed to compile your site.
 # If you compile your blog yourself, setting this won't matter, but it's a nice thing to keep updated.
-RuhohSpec: "2.0.alpha"
+RuhohSpec: "2.1"
 
 # Used for things like RSS that need the full URL to a given resource.
 # This DOES NOT affect any of your paths or links in any way.
@@ -18,8 +18,8 @@ production_url: "http://chrisparnin.github.io"
 # NOTE: base_path is never added in development mode (for convenience).
 base_path: "/articles"
 
-theme:
-  name: "twitter"
+"theme-bootstrap-2" :
+  "use" : "theme"
 
 posts:
   permalink: "/:year/:month/:title/"
@@ -40,3 +40,8 @@ paginator:
   #
   # root_page has been set to the root for a more traditional style blog feel.
   root_page: '/'
+
+widgets :
+
+# google_prettify :
+#	linenums : false
