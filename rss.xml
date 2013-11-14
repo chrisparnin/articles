@@ -4,7 +4,7 @@
     <title>Chris Parnin</title>
     <description>Chris Parnin</description>
     <link>http://chrisparnin.github.io</link>
-    <pubDate>2013-10-12</pubDate>
+    <pubDate>2013-11-14</pubDate>
     <item>
       <title>About</title>
       <link>http://chrisparnin.github.io/articles/about</link>
@@ -25,6 +25,10 @@
     &lt;h3&gt;May&lt;/h3&gt;
     &lt;ul&gt;
       &lt;li&gt;&lt;span&gt;2013-05-20&lt;/span&gt; &amp;raquo; &lt;a href="/articles/2013/05/api-diaries-twilio"&gt;Api Diaries - Twilio&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+    &lt;h3&gt;November&lt;/h3&gt;
+    &lt;ul&gt;
+      &lt;li&gt;&lt;span&gt;2013-11-14&lt;/span&gt; &amp;raquo; &lt;a href="/articles/2013/11/collecting-and-emailing-zipped-tool-logs-from-your-user-in-one-click"&gt;Collecting and emailing zipped tool logs from your user in one click&lt;/a&gt;&lt;/li&gt;
     &lt;/ul&gt;
     &lt;h3&gt;October&lt;/h3&gt;
     &lt;ul&gt;
@@ -93,6 +97,12 @@
     &lt;a href="/articles/tags#academic blogging-ref"&gt;academic blogging &lt;span&gt;1&lt;/span&gt;&lt;/a&gt;
   &lt;/li&gt;
   &lt;li&gt;
+    &lt;a href="/articles/tags#automark-ref"&gt;automark &lt;span&gt;1&lt;/span&gt;&lt;/a&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;a href="/articles/tags#tools-ref"&gt;tools &lt;span&gt;1&lt;/span&gt;&lt;/a&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
     &lt;a href="/articles/tags#interview-ref"&gt;interview &lt;span&gt;1&lt;/span&gt;&lt;/a&gt;
   &lt;/li&gt;
   &lt;li&gt;
@@ -102,6 +112,10 @@
 
   &lt;h3 id="academic blogging-ref"&gt;academic blogging&lt;/h3&gt;
     &lt;li&gt;&lt;a href="/articles/2013/04/why-your-academic-blog-post-is-worth-200-000"&gt;Why Your Academic Blog Post is Worth $200,000&lt;/a&gt;&lt;/li&gt;
+  &lt;h3 id="automark-ref"&gt;automark&lt;/h3&gt;
+    &lt;li&gt;&lt;a href="/articles/2013/11/collecting-and-emailing-zipped-tool-logs-from-your-user-in-one-click"&gt;Collecting and emailing zipped tool logs from your user in one click&lt;/a&gt;&lt;/li&gt;
+  &lt;h3 id="tools-ref"&gt;tools&lt;/h3&gt;
+    &lt;li&gt;&lt;a href="/articles/2013/11/collecting-and-emailing-zipped-tool-logs-from-your-user-in-one-click"&gt;Collecting and emailing zipped tool logs from your user in one click&lt;/a&gt;&lt;/li&gt;
   &lt;h3 id="interview-ref"&gt;interview&lt;/h3&gt;
     &lt;li&gt;&lt;a href="/articles/2013/05/api-diaries-twilio"&gt;Api Diaries - Twilio&lt;/a&gt;&lt;/li&gt;
   &lt;h3 id="api design-ref"&gt;api design&lt;/h3&gt;

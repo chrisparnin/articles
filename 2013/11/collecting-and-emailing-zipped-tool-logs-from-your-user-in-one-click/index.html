@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Collecting and emailing zipped tool logs from your user in one click</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Chris Parnin">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le styles -->
+<link href='/articles/assets/stylesheets/bootstrap.min-88238289010db19359d2181e634e95cd.css' type='text/css' rel='stylesheet' media='all'>
+<link href='/articles/assets/stylesheets/style-e81fa375b231bedf6cb2dbc6653570cc.css' type='text/css' rel='stylesheet' media='all'>
+    <!-- Le fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+  </head>
+
+  <body>
+
+    <div class="navbar">
+      <div class="navbar-inner">
+        <div class="container-narrow">
+          <a class="brand" href="/articles/">Chris Parnin</a>
+          <ul class="nav">
+              
+                <li><a href="/articles/about">About</a></li>
+              
+              
+                <li><a href="/articles/archive">Archive</a></li>
+              
+              
+                <li><a href="/articles/tags">Tags</a></li>
+              
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-narrow">
+
+      <div class="content">
+        
+<div class="page-header">
+  <h1>Collecting and emailing zipped tool logs from your user in one click </h1>
+</div>
+
+<div class="row-fluid post-full">
+  <div class="span12">
+    <div class="date">
+      <span>2013-11-14</strong>
+    </div>
+    <div class="content">
+      <h1 id="toc_0">Collecting and emailing zipped tool logs from your user in one click</h1>
+
+<p>Congratulations your tool has users!  But now you are getting bug reports or issues only happening on their machine.  </p>
+
+<p>Unfortunately, very few developers will have the time or patience to send poke around or follow instructions for finding your debugging output and sending it to you.  </p>
+
+<p>This post describes a simple way to reduce the friction just a little bit by zipping up your tool logs, opens an email message, and attaches the zip to the email.  From the user&#39;s perspective, this opens up their default email client (e.g. Outlook) addressed to you, with the file attached and a body explaining the tool logs and where they can see the file if needed.  Then, they just have to click send.</p>
+
+<h2 id="toc_1">Zipping a file</h2>
+
+<h4 id="toc_2">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<p>First, setup things on disk. <code>builder</code> is a StringBuilder that contains the exported contents.  <code>tempExport</code> is the file we want to zip, as <code>tempExportZip</code>.</p>
+
+<pre><code>var time = DateTime.Now;
+string tempExport = System.IO.Path.Combine(m_basePath, &quot;exports&quot;, string.Format(&quot;export-{0:yyyy-MM-dd-hh-mm-tt}.export&quot;, time));
+string tempExportZip = System.IO.Path.Combine(m_basePath, &quot;exports&quot;, string.Format(&quot;export-{0:yyyy-MM-dd-hh-mm-tt}.zip&quot;, time));
+
+var parent = System.IO.Path.GetDirectoryName(tempExport);
+if (!System.IO.Directory.Exists(parent))
+{
+    System.IO.Directory.CreateDirectory(parent);
+}
+
+System.IO.File.WriteAllText(tempExport, builder.ToString());
+Zip.ZipFile(tempExportZip, tempExport);
+</code></pre>
+
+<h4 id="toc_3">automark.VisualStudio/Util/Zip.cs</h4>
+
+<p>This is a helper class using <code>ZipPackage</code> to support</p>
+
+<pre><code> using System.IO;
+ using System.IO.Packaging;
+
+ class Zip
+ {
+     public static void ZipFile(string zipFilename, string filenameToAdd)
+     {
+         using (Package zipPackage = ZipPackage.Open(zipFilename, FileMode.OpenOrCreate))
+         {
+             string destFilename = &quot;.\\&quot; + Path.GetFileName(filenameToAdd);
+             Uri zipPartUri = PackUriHelper.CreatePartUri(new Uri(destFilename, UriKind.Relative));
+
+             if (zipPackage.PartExists(zipPartUri))
+             {
+                 zipPackage.DeletePart(zipPartUri);
+             }
+
+             PackagePart zipPackagePart = zipPackage.CreatePart(zipPartUri, &quot;&quot;, CompressionOption.Maximum);
+             using (FileStream fileStream = new FileStream(filenameToAdd, FileMode.Open, FileAccess.Read))
+             {
+                 using (Stream dest = zipPackagePart.GetStream())
+                 {
+                     fileStream.CopyTo(dest);
+                 }
+             }
+         }
+     }
+ }
+</code></pre>
+
+<h2 id="toc_4">Sending mail</h2>
+
+<h4 id="toc_5">automark.VisualStudio/Util/Mail.cs</h4>
+
+<p>A helper class for using the <a href="http://msdn.microsoft.com/en-us/library/aa142548(v=exchg.65">MAPI api</a>.aspx) for sending an email with Windows default mail client.  Also see this <a href="http://stackoverflow.com/questions/6753008/opening-default-e-mail-program-with-attachment-c">Stack Overflow Question</a>.</p>
+
+<pre><code>using System;
+using System.Collections;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Threading;
+
+namespace ninlabs.automark.VisualStudio.Util
+{
+    public class TestMapiMessageClass
+    {
+        /// &lt;summary&gt;
+        /// Test method to create and show an email
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;args&quot;&gt;&lt;/param&gt;
+        static void Main(string[] args)
+        {
+            MapiMailMessage message = new MapiMailMessage(&quot;Test Message&quot;, &quot;Test Body&quot;);
+            message.Recipients.Add(&quot;Test@Test.com&quot;);
+            message.Files.Add(@&quot;C:\del.txt&quot;);
+            message.ShowDialog();
+            Console.ReadLine();
+        }
+    }
+
+    public delegate void MessageEvent(bool success);
+
+    public class MapiMailMessage
+    {
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        private class MapiFileDescriptor
+        {
+            public int reserved = 0;
+            public int flags = 0;
+            public int position = 0;
+            public string path = null;
+            public string name = null;
+            public IntPtr type = IntPtr.Zero;
+        }
+
+        public enum RecipientType : int
+        {
+            To = 1,
+            CC = 2,
+            BCC = 3
+        };
+
+        public event MessageEvent OnDone;
+
+        private string _subject;
+        private string _body;
+        private RecipientCollection _recipientCollection;
+        private ArrayList _files;
+        private ManualResetEvent _manualResetEvent;
+
+        public MapiMailMessage()
+        {
+            _files = new ArrayList();
+            _recipientCollection = new RecipientCollection();
+            _manualResetEvent = new ManualResetEvent(false);
+        }
+
+        public MapiMailMessage(string subject)
+            : this()
+        {
+            _subject = subject;
+        }
+
+        public MapiMailMessage(string subject, string body)
+            : this()
+        {
+            _subject = subject;
+            _body = body;
+        }
+
+        public string Subject
+        {
+            get { return _subject; }
+            set { _subject = value; }
+        }
+
+        public string Body
+        {
+            get { return _body; }
+            set { _body = value; }
+        }
+
+        public RecipientCollection Recipients
+        {
+            get { return _recipientCollection; }
+        }
+
+        public ArrayList Files
+        {
+            get { return _files; }
+        }
+
+        public void ShowDialog()
+        {
+            // Create the mail message in an STA thread
+            Thread t = new Thread(new ThreadStart(_ShowMail));
+            t.IsBackground = true;
+            t.ApartmentState = ApartmentState.STA;
+            t.Start();
+
+            // only return when the new thread has built it&#39;s interop representation
+            _manualResetEvent.WaitOne();
+            _manualResetEvent.Reset();
+        }
+
+        private void _ShowMail(object ignore)
+        {
+            MAPIHelperInterop.MapiMessage message = new MAPIHelperInterop.MapiMessage();
+
+            using (RecipientCollection.InteropRecipientCollection interopRecipients
+                        = _recipientCollection.GetInteropRepresentation())
+            {
+
+                message.Subject = _subject;
+                message.NoteText = _body;
+
+                message.Recipients = interopRecipients.Handle;
+                message.RecipientCount = _recipientCollection.Count;
+
+                // Check if we need to add attachments
+                if (_files.Count &gt; 0)
+                {
+                    // Add attachments
+                    message.Files = _AllocAttachments(out message.FileCount);
+                }
+
+                // Signal the creating thread (make the remaining code async)
+                _manualResetEvent.Set();
+
+                const int MAPI_DIALOG = 0x8;
+                //const int MAPI_LOGON_UI = 0x1;
+                const int SUCCESS_SUCCESS = 0;
+                int error = MAPIHelperInterop.MAPISendMail(IntPtr.Zero, IntPtr.Zero, message, MAPI_DIALOG, 0);
+
+                if (_files.Count &gt; 0)
+                {
+                    // Deallocate the files
+                    _DeallocFiles(message);
+                }
+
+                // Check for error
+                if (error != SUCCESS_SUCCESS)
+                {
+                    _LogErrorMapi(error);
+                }
+
+                if (OnDone != null)
+                {
+                    OnDone(error == SUCCESS_SUCCESS || error == 1 /*MAPI_USER_ABORT*/);
+                }
+            }
+        }
+
+        private void _DeallocFiles(MAPIHelperInterop.MapiMessage message)
+        {
+            if (message.Files != IntPtr.Zero)
+            {
+                Type fileDescType = typeof(MapiFileDescriptor);
+                int fsize = Marshal.SizeOf(fileDescType);
+
+                // Get the ptr to the files
+                int runptr = (int)message.Files;
+                // Release each file
+                for (int i = 0; i &lt; message.FileCount; i++)
+                {
+                    Marshal.DestroyStructure((IntPtr)runptr, fileDescType);
+                    runptr += fsize;
+                }
+                // Release the file
+                Marshal.FreeHGlobal(message.Files);
+            }
+        }
+
+        private IntPtr _AllocAttachments(out int fileCount)
+        {
+            fileCount = 0;
+            if (_files == null)
+            {
+                return IntPtr.Zero;
+            }
+            if ((_files.Count &lt;= 0) || (_files.Count &gt; 100))
+            {
+                return IntPtr.Zero;
+            }
+
+            Type atype = typeof(MapiFileDescriptor);
+            int asize = Marshal.SizeOf(atype);
+            IntPtr ptra = Marshal.AllocHGlobal(_files.Count * asize);
+
+            MapiFileDescriptor mfd = new MapiFileDescriptor();
+            mfd.position = -1;
+            int runptr = (int)ptra;
+            for (int i = 0; i &lt; _files.Count; i++)
+            {
+                string path = _files[i] as string;
+                mfd.name = Path.GetFileName(path);
+                mfd.path = path;
+                Marshal.StructureToPtr(mfd, (IntPtr)runptr, false);
+                runptr += asize;
+            }
+
+            fileCount = _files.Count;
+            return ptra;
+        }
+
+        /// &lt;summary&gt;
+        /// Sends the mail message.
+        /// &lt;/summary&gt;
+        private void _ShowMail()
+        {
+            _ShowMail(null);
+        }
+
+        /// &lt;summary&gt;
+        /// Logs any Mapi errors.
+        /// &lt;/summary&gt;
+        private void _LogErrorMapi(int errorCode)
+        {
+            const int MAPI_USER_ABORT = 1;
+            const int MAPI_E_FAILURE = 2;
+            const int MAPI_E_LOGIN_FAILURE = 3;
+            const int MAPI_E_DISK_FULL = 4;
+            const int MAPI_E_INSUFFICIENT_MEMORY = 5;
+            const int MAPI_E_BLK_TOO_SMALL = 6;
+            const int MAPI_E_TOO_MANY_SESSIONS = 8;
+            const int MAPI_E_TOO_MANY_FILES = 9;
+            const int MAPI_E_TOO_MANY_RECIPIENTS = 10;
+            const int MAPI_E_ATTACHMENT_NOT_FOUND = 11;
+            const int MAPI_E_ATTACHMENT_OPEN_FAILURE = 12;
+            const int MAPI_E_ATTACHMENT_WRITE_FAILURE = 13;
+            const int MAPI_E_UNKNOWN_RECIPIENT = 14;
+            const int MAPI_E_BAD_RECIPTYPE = 15;
+            const int MAPI_E_NO_MESSAGES = 16;
+            const int MAPI_E_INVALID_MESSAGE = 17;
+            const int MAPI_E_TEXT_TOO_LARGE = 18;
+            const int MAPI_E_INVALID_SESSION = 19;
+            const int MAPI_E_TYPE_NOT_SUPPORTED = 20;
+            const int MAPI_E_AMBIGUOUS_RECIPIENT = 21;
+            const int MAPI_E_MESSAGE_IN_USE = 22;
+            const int MAPI_E_NETWORK_FAILURE = 23;
+            const int MAPI_E_INVALID_EDITFIELDS = 24;
+            const int MAPI_E_INVALID_RECIPS = 25;
+            const int MAPI_E_NOT_SUPPORTED = 26;
+            const int MAPI_E_NO_LIBRARY = 999;
+            const int MAPI_E_INVALID_PARAMETER = 998;
+
+            string error = string.Empty;
+            switch (errorCode)
+            {
+                case MAPI_USER_ABORT:
+                    error = &quot;User Aborted.&quot;;
+                    break;
+                case MAPI_E_FAILURE:
+                    error = &quot;MAPI Failure.&quot;;
+                    break;
+                case MAPI_E_LOGIN_FAILURE:
+                    error = &quot;Login Failure.&quot;;
+                    break;
+                case MAPI_E_DISK_FULL:
+                    error = &quot;MAPI Disk full.&quot;;
+                    break;
+                case MAPI_E_INSUFFICIENT_MEMORY:
+                    error = &quot;MAPI Insufficient memory.&quot;;
+                    break;
+                case MAPI_E_BLK_TOO_SMALL:
+                    error = &quot;MAPI Block too small.&quot;;
+                    break;
+                case MAPI_E_TOO_MANY_SESSIONS:
+                    error = &quot;MAPI Too many sessions.&quot;;
+                    break;
+                case MAPI_E_TOO_MANY_FILES:
+                    error = &quot;MAPI too many files.&quot;;
+                    break;
+                case MAPI_E_TOO_MANY_RECIPIENTS:
+                    error = &quot;MAPI too many recipients.&quot;;
+                    break;
+                case MAPI_E_ATTACHMENT_NOT_FOUND:
+                    error = &quot;MAPI Attachment not found.&quot;;
+                    break;
+                case MAPI_E_ATTACHMENT_OPEN_FAILURE:
+                    error = &quot;MAPI Attachment open failure.&quot;;
+                    break;
+                case MAPI_E_ATTACHMENT_WRITE_FAILURE:
+                    error = &quot;MAPI Attachment Write Failure.&quot;;
+                    break;
+                case MAPI_E_UNKNOWN_RECIPIENT:
+                    error = &quot;MAPI Unknown recipient.&quot;;
+                    break;
+                case MAPI_E_BAD_RECIPTYPE:
+                    error = &quot;MAPI Bad recipient type.&quot;;
+                    break;
+                case MAPI_E_NO_MESSAGES:
+                    error = &quot;MAPI No messages.&quot;;
+                    break;
+                case MAPI_E_INVALID_MESSAGE:
+                    error = &quot;MAPI Invalid message.&quot;;
+                    break;
+                case MAPI_E_TEXT_TOO_LARGE:
+                    error = &quot;MAPI Text too large.&quot;;
+                    break;
+                case MAPI_E_INVALID_SESSION:
+                    error = &quot;MAPI Invalid session.&quot;;
+                    break;
+                case MAPI_E_TYPE_NOT_SUPPORTED:
+                    error = &quot;MAPI Type not supported.&quot;;
+                    break;
+                case MAPI_E_AMBIGUOUS_RECIPIENT:
+                    error = &quot;MAPI Ambiguous recipient.&quot;;
+                    break;
+                case MAPI_E_MESSAGE_IN_USE:
+                    error = &quot;MAPI Message in use.&quot;;
+                    break;
+                case MAPI_E_NETWORK_FAILURE:
+                    error = &quot;MAPI Network failure.&quot;;
+                    break;
+                case MAPI_E_INVALID_EDITFIELDS:
+                    error = &quot;MAPI Invalid edit fields.&quot;;
+                    break;
+                case MAPI_E_INVALID_RECIPS:
+                    error = &quot;MAPI Invalid Recipients.&quot;;
+                    break;
+                case MAPI_E_NOT_SUPPORTED:
+                    error = &quot;MAPI Not supported.&quot;;
+                    break;
+                case MAPI_E_NO_LIBRARY:
+                    error = &quot;MAPI No Library.&quot;;
+                    break;
+                case MAPI_E_INVALID_PARAMETER:
+                    error = &quot;MAPI Invalid parameter.&quot;;
+                    break;
+            }
+
+            Debug.WriteLine(&quot;Error sending MAPI Email. Error: &quot; + error + &quot; (code = &quot; + errorCode + &quot;).&quot;);
+        }
+
+        internal class MAPIHelperInterop
+        {
+            private MAPIHelperInterop()
+            {
+            }
+
+            public const int MAPI_LOGON_UI = 0x1;
+
+            [DllImport(&quot;MAPI32.DLL&quot;, CharSet = CharSet.Ansi)]
+            public static extern int MAPILogon(IntPtr hwnd, string prf, string pw, int flg, int rsv, ref IntPtr sess);
+
+            [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+            public class MapiMessage
+            {
+                public int Reserved = 0;
+                public string Subject = null;
+                public string NoteText = null;
+                public string MessageType = null;
+                public string DateReceived = null;
+                public string ConversationID = null;
+                public int Flags = 0;
+                public IntPtr Originator = IntPtr.Zero;
+                public int RecipientCount = 0;
+                public IntPtr Recipients = IntPtr.Zero;
+                public int FileCount = 0;
+                public IntPtr Files = IntPtr.Zero;
+            }
+
+            [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+            public class MapiRecipDesc
+            {
+                public int Reserved = 0;
+                public int RecipientClass = 0;
+                public string Name = null;
+                public string Address = null;
+                public int eIDSize = 0;
+                public IntPtr EntryID = IntPtr.Zero;
+            }
+
+            [DllImport(&quot;MAPI32.DLL&quot;)]
+            public static extern int MAPISendMail(IntPtr session, IntPtr hwnd, MapiMessage message, int flg, int rsv);
+        }
+    }
+
+    public class Recipient
+    {
+        public string Address = null;
+        public string DisplayName = null;
+        public MapiMailMessage.RecipientType RecipientType = MapiMailMessage.RecipientType.To;
+
+        public Recipient(string address)
+        {
+            Address = address;
+        }
+
+        public Recipient(string address, string displayName)
+        {
+            Address = address;
+            DisplayName = displayName;
+        }
+
+        public Recipient(string address, MapiMailMessage.RecipientType recipientType)
+        {
+            Address = address;
+            RecipientType = recipientType;
+        }
+
+        public Recipient(string address, string displayName, MapiMailMessage.RecipientType recipientType)
+        {
+            Address = address;
+            DisplayName = displayName;
+            RecipientType = recipientType;
+        }
+
+        internal MapiMailMessage.MAPIHelperInterop.MapiRecipDesc GetInteropRepresentation()
+        {
+            MapiMailMessage.MAPIHelperInterop.MapiRecipDesc interop = new MapiMailMessage.MAPIHelperInterop.MapiRecipDesc();
+
+            if (DisplayName == null)
+            {
+                interop.Name = Address;
+            }
+            else
+            {
+                interop.Name = DisplayName;
+                interop.Address = Address;
+            }
+
+            interop.RecipientClass = (int)RecipientType;
+
+            return interop;
+        }
+    }
+    public class RecipientCollection : CollectionBase
+    {
+        /// &lt;summary&gt;
+        /// Adds the specified recipient to this collection.
+        /// &lt;/summary&gt;
+        public void Add(Recipient value)
+        {
+            List.Add(value);
+        }
+
+        /// &lt;summary&gt;
+        /// Adds a new recipient with the specified address to this collection.
+        /// &lt;/summary&gt;
+        public void Add(string address)
+        {
+            this.Add(new Recipient(address));
+        }
+
+        /// &lt;summary&gt;
+        /// Adds a new recipient with the specified address and display name to this collection.
+        /// &lt;/summary&gt;
+        public void Add(string address, string displayName)
+        {
+            this.Add(new Recipient(address, displayName));
+        }
+
+        /// &lt;summary&gt;
+        /// Adds a new recipient with the specified address and recipient type to this collection.
+        /// &lt;/summary&gt;
+        public void Add(string address, MapiMailMessage.RecipientType recipientType)
+        {
+            this.Add(new Recipient(address, recipientType));
+        }
+
+        /// &lt;summary&gt;
+        /// Adds a new recipient with the specified address, display name and recipient type to this collection.
+        /// &lt;/summary&gt;
+        public void Add(string address, string displayName, MapiMailMessage.RecipientType recipientType)
+        {
+            this.Add(new Recipient(address, displayName, recipientType));
+        }
+
+        /// &lt;summary&gt;
+        /// Returns the recipient stored in this collection at the specified index.
+        /// &lt;/summary&gt;
+        public Recipient this[int index]
+        {
+            get
+            {
+                return (Recipient)List[index];
+            }
+        }
+
+        internal InteropRecipientCollection GetInteropRepresentation()
+        {
+            return new InteropRecipientCollection(this);
+        }
+
+        internal struct InteropRecipientCollection : IDisposable
+        {
+            private IntPtr _handle;
+            private int _count;
+
+            public InteropRecipientCollection(RecipientCollection outer)
+            {
+                _count = outer.Count;
+
+                if (_count == 0)
+                {
+                    _handle = IntPtr.Zero;
+                    return;
+                }
+
+                // allocate enough memory to hold all recipients
+                int size = Marshal.SizeOf(typeof(MapiMailMessage.MAPIHelperInterop.MapiRecipDesc));
+                _handle = Marshal.AllocHGlobal(_count * size);
+
+                // place all interop recipients into the memory just allocated
+                int ptr = (int)_handle;
+                foreach (Recipient native in outer)
+                {
+                    MapiMailMessage.MAPIHelperInterop.MapiRecipDesc interop = native.GetInteropRepresentation();
+
+                    // stick it in the memory block
+                    Marshal.StructureToPtr(interop, (IntPtr)ptr, false);
+                    ptr += size;
+                }
+            }
+
+            public IntPtr Handle
+            {
+                get { return _handle; }
+            }
+            public void Dispose()
+            {
+                if (_handle != IntPtr.Zero)
+                {
+                    Type type = typeof(MapiMailMessage.MAPIHelperInterop.MapiRecipDesc);
+                    int size = Marshal.SizeOf(type);
+
+                    // destroy all the structures in the memory area
+                    int ptr = (int)_handle;
+                    for (int i = 0; i &lt; _count; i++)
+                    {
+                        Marshal.DestroyStructure((IntPtr)ptr, type);
+                        ptr += size;
+                    }
+
+                    // free the memory
+                    Marshal.FreeHGlobal(_handle);
+
+                    _handle = IntPtr.Zero;
+                    _count = 0;
+                }
+            }
+        }
+    }
+}
+</code></pre>
+
+<h4 id="toc_6">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<p>Let&#39;s send the message!  As a back-up, we can use the <code>mailto:</code> protocol if the MAPI api fails.  But we have to access to user to manually attach the zip file.</p>
+
+<pre><code>bool triedBackup = false;
+try
+{
+    MapiMailMessage message = new MapiMailMessage(&quot;Automark export&quot;, &quot;This information includes the automark usage log....  This usage info will help in testing and improving the tool. You can review the exported info in &quot; + tempExport + &quot;  \nThanks!&quot;);
+    message.Recipients.Add(&quot;me@gmail.com&quot;);
+    message.Files.Add(tempExportZip);
+    message.OnDone += (success) =&gt;
+    {
+        if (!success)
+        {
+            triedBackup = true;
+            string msg = @&quot;mailto:me@gmail.com&amp;subject=Automark export&amp;body=Please attach {0} and send.&quot;;
+            System.Diagnostics.Process.Start(string.Format(msg, tempExportZip));
+        }
+    };
+    message.ShowDialog();
+}
+catch (Exception ex)
+{
+    if (!triedBackup)
+    {
+        string msg = @&quot;mailto:chris.parnin@gatech.edu&amp;subject=Automark export&amp;body=Please attach {0} and send.&quot;;
+        System.Diagnostics.Process.Start(string.Format(msg, tempExportZip));
+    }
+}
+</code></pre>
+
+<h2 id="toc_7">Conclusion</h2>
+
+<p>Reducing friction to feedback helps us get better data. There are some nice ways to extend this.  For example, automatically take a screenshot of buggy behavior and send it over email.  Or file a bug report to github, etc.</p>
+
+    </div>
+    <ul class="tag_box inline">
+      <li><i class="icon-folder-open"></i></li>
+    </ul>
+    <ul class="tag_box inline">
+      <li><i class="icon-tags"></i></li>
+      <li>
+        <a href="/articles/tags#automark-ref">automark <span>1</span></a>
+      </li>
+      <li>
+        <a href="/articles/tags#tools-ref">tools <span>1</span></a>
+      </li>
+    </ul>
+    <hr>
+    <div class="pagination">
+      <ul>
+          <li class="prev"><a href="/articles/2013/10/creating-a-visual-studio-extension-shim-for-automark" title="Creating a Visual Studio extension shim for automark">&larr; Previous</a></li>
+
+          <li><a href="/articles/archive">Archive</a></li>
+
+          <li class="next"><a href="/articles/2013/05/api-diaries-twilio" title="Api Diaries - Twilio">Next &rarr;</a></li>
+      </ul>
+    </div>
+    <hr>
+    
+  </div>
+</div>
+
+
+      </div>
+
+      <hr>
+      <div class="footer">
+        <p>&copy; Chris Parnin 2013
+          with help from <a href="http://ruhoh.com" target="_blank" title="The Definitive Technical Blogging Framework">ruhoh</a>
+          and <a href="http://twitter.github.com/bootstrap/" target="_blank">Twitter Bootstrap</a>
+        </p>
+      </div>
+
+    </div> <!-- /container -->
+
+    
+    
+  </body>
+</html>

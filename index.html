@@ -93,6 +93,43 @@
   </div>
 </div>
 <div class="post">
+  <h3 class="title"><a href="/articles/2013/11/collecting-and-emailing-zipped-tool-logs-from-your-user-in-one-click">Collecting and emailing zipped tool logs from your user in one click</a> <span class="date">2013-11-14</span></h3>
+
+  <div class="summary ellipsis">
+<h1 id="toc_0">Collecting and emailing zipped tool logs from your user in one click</h1>
+
+<p>Congratulations your tool has users!  But now you are getting bug reports or issues only happening on their machine.  </p>
+
+<p>Unfortunately, very few developers will have the time or patience to send poke around or follow instructions for finding your debugging output and sending it to you.  </p>
+
+<p>This post describes a simple way to reduce the friction just a little bit by zipping up your tool logs, opens an email message, and attaches the zip to the email.  From the user's perspective, this opens up their default email client (e.g. Outlook) addressed to you, with the file attached and a body explaining the tool logs and where they can see the file if needed.  Then, they just have to click send.</p>
+
+<h2 id="toc_1">Zipping a file</h2>
+
+<h4 id="toc_2">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<p>First, setup things on disk. <code>builder</code> is a StringBuilder that contains the exported contents.  <code>tempExport</code> is the file we want to zip, as <code>tempExportZip</code>.</p>
+
+<pre><code>var time = DateTime.Now;
+string tempExport = System.IO.Path.Combine(m_basePath, "exports", string.Format("export-{0:yyyy-MM-dd-hh-mm-tt}.export", time));
+string tempExportZip = System.IO.Path.Combine(m_basePath, "exports", string.Format("export-{0:yyyy-MM-dd-hh-mm-tt}.zip", time));
+
+var parent = System.IO.Path.GetDirectoryName(tempExport);
+if (!System.IO.Directory.Exists(parent))
+{
+    System.IO.Directory.CreateDirectory(parent);
+}
+
+System.IO.File.WriteAllText(tempExport, builder.ToString());
+Zip.ZipFile(tempExportZip, tempExport);
+</code></pre>
+</div>
+
+  <div class="more">
+    <a href="/articles/2013/11/collecting-and-emailing-zipped-tool-logs-from-your-user-in-one-click" class="btn btn-small">read more..</a>
+  </div>
+</div>
+<div class="post">
   <h3 class="title"><a href="/articles/2013/10/creating-a-visual-studio-extension-shim-for-automark">Creating a Visual Studio extension shim for automark</a> <span class="date">2013-10-12</span></h3>
 
   <div class="summary ellipsis">
@@ -196,42 +233,6 @@
 
   <div class="more">
     <a href="/articles/2013/09/parse-git-log-output-in-c" class="btn btn-small">read more..</a>
-  </div>
-</div>
-<div class="post">
-  <h3 class="title"><a href="/articles/2013/09/using-tagging-and-adornments-for-better-todos-in-visual-studio">Using Tagging and Adornments for better TODOs in Visual Studio.</a> <span class="date">2013-09-27</span></h3>
-
-  <div class="summary ellipsis">
-<p>Visual Studio actually provides a powerful framework for making custom extensions to the editor while keeping the code surprisingly simple. </p>
-
-<p>Imagine if you wanted to make a <code>// TODO</code> note appear more distinctive as well as provide custom actions.</p>
-
-<p><img src="/articles/assets/media/todo-ex.png" alt="TodoExample"></p>
-
-<p>With Visual Studio Extensions and MEF, you can make direct graphical changes to the editor with an <code>IAdornmentLayer</code>. But if you want to support custom editor actions and more interactivity, it is worth it to also create an <code>ITagger</code>. This post will show how you can insert tags into the <code>TextBuffer</code> and query those to render custom adornments.</p>
-
-<h4 id="toc_0">Adornments</h4>
-
-<p>First, we create a class that will respond to text view creation events and create an <code>IAdornmentLayer</code></p>
-
-<h5 id="toc_1">TodoArdornmentFactory.cs</h5>
-
-<p>We provide MEF attributes so that the class will merge into the  <code>IWpfTextViewCreationListener</code> MEF container.</p>
-
-<pre><code>/// &lt;summary&gt;
-/// Establishes an &lt;see cref="IAdornmentLayer"/&gt; to place the adornment on and exports the &lt;see cref="IWpfTextViewCreationListener"/&gt;
-/// that instantiates the adornment on the event of a &lt;see cref="IWpfTextView"/&gt;'s creation
-/// &lt;/summary&gt;
-[Export(typeof(IWpfTextViewCreationListener))]
-[ContentType("text")]
-[TextViewRole(PredefinedTextViewRoles.Document)]
-internal sealed class TodoArdornmentFactory : IWpfTextViewCreationListener
-{
-</code></pre>
-</div>
-
-  <div class="more">
-    <a href="/articles/2013/09/using-tagging-and-adornments-for-better-todos-in-visual-studio" class="btn btn-small">read more..</a>
   </div>
 </div>
 

@@ -50,6 +50,42 @@
         <div class="row-fluid">
   <div class="span12">
       <div class="posts">
+        <h3 class="title"><a href="/articles/2013/09/using-tagging-and-adornments-for-better-todos-in-visual-studio">Using Tagging and Adornments for better TODOs in Visual Studio.</a> <span class="date">2013-09-27</span></h3>
+
+        <div class="summary ellipsis">
+<p>Visual Studio actually provides a powerful framework for making custom extensions to the editor while keeping the code surprisingly simple. </p>
+
+<p>Imagine if you wanted to make a <code>// TODO</code> note appear more distinctive as well as provide custom actions.</p>
+
+<p><img src="/articles/assets/media/todo-ex.png" alt="TodoExample"></p>
+
+<p>With Visual Studio Extensions and MEF, you can make direct graphical changes to the editor with an <code>IAdornmentLayer</code>. But if you want to support custom editor actions and more interactivity, it is worth it to also create an <code>ITagger</code>. This post will show how you can insert tags into the <code>TextBuffer</code> and query those to render custom adornments.</p>
+
+<h4 id="toc_0">Adornments</h4>
+
+<p>First, we create a class that will respond to text view creation events and create an <code>IAdornmentLayer</code></p>
+
+<h5 id="toc_1">TodoArdornmentFactory.cs</h5>
+
+<p>We provide MEF attributes so that the class will merge into the  <code>IWpfTextViewCreationListener</code> MEF container.</p>
+
+<pre><code>/// &lt;summary&gt;
+/// Establishes an &lt;see cref="IAdornmentLayer"/&gt; to place the adornment on and exports the &lt;see cref="IWpfTextViewCreationListener"/&gt;
+/// that instantiates the adornment on the event of a &lt;see cref="IWpfTextView"/&gt;'s creation
+/// &lt;/summary&gt;
+[Export(typeof(IWpfTextViewCreationListener))]
+[ContentType("text")]
+[TextViewRole(PredefinedTextViewRoles.Document)]
+internal sealed class TodoArdornmentFactory : IWpfTextViewCreationListener
+{
+</code></pre>
+</div>
+
+        <div class="more">
+          <a href="/articles/2013/09/using-tagging-and-adornments-for-better-todos-in-visual-studio" class="btn btn-small">read more..</a>
+        </div>
+      </div>
+      <div class="posts">
         <h3 class="title"><a href="/articles/2013/04/why-your-academic-blog-post-is-worth-200-000">Why Your Academic Blog Post is Worth $200,000</a> <span class="date">2013-04-23</span></h3>
 
         <div class="summary ellipsis">
