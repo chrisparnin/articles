@@ -69,17 +69,15 @@ All new hires spend the first two weeks &lt;a href="http://www.zendesk.com/blog/
       <title>Collecting and emailing zipped tool logs from your user in one click</title>
       <link>http://chrisparnin.github.io/articles/2013/11/collecting-and-emailing-zipped-tool-logs-from-your-user-in-one-click</link>
       <pubDate>2013-11-14</pubDate>
-      <description>&lt;h1 id="toc_0"&gt;Collecting and emailing zipped tool logs from your user in one click&lt;/h1&gt;
-
-&lt;p&gt;Congratulations your tool has users!  But now you are getting bug reports or issues only happening on their machine.  &lt;/p&gt;
+      <description>&lt;p&gt;Congratulations your tool has users!  But now you are getting bug reports or issues only happening on their machine.  &lt;/p&gt;
 
 &lt;p&gt;Unfortunately, very few developers will have the time or patience to send poke around or follow instructions for finding your debugging output and sending it to you.  &lt;/p&gt;
 
 &lt;p&gt;This post describes a simple way to reduce the friction just a little bit by zipping up your tool logs, opens an email message, and attaches the zip to the email.  From the user&amp;#39;s perspective, this opens up their default email client (e.g. Outlook) addressed to you, with the file attached and a body explaining the tool logs and where they can see the file if needed.  Then, they just have to click send.&lt;/p&gt;
 
-&lt;h2 id="toc_1"&gt;Zipping a file&lt;/h2&gt;
+&lt;h2 id="toc_0"&gt;Zipping a file&lt;/h2&gt;
 
-&lt;h4 id="toc_2"&gt;automark.VisualStudio/automark.VisualStudioPackage.cs&lt;/h4&gt;
+&lt;h4 id="toc_1"&gt;automark.VisualStudio/automark.VisualStudioPackage.cs&lt;/h4&gt;
 
 &lt;p&gt;First, setup things on disk. &lt;code&gt;builder&lt;/code&gt; is a StringBuilder that contains the exported contents.  &lt;code&gt;tempExport&lt;/code&gt; is the file we want to zip, as &lt;code&gt;tempExportZip&lt;/code&gt;.&lt;/p&gt;
 
@@ -97,7 +95,7 @@ System.IO.File.WriteAllText(tempExport, builder.ToString());
 Zip.ZipFile(tempExportZip, tempExport);
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id="toc_3"&gt;automark.VisualStudio/Util/Zip.cs&lt;/h4&gt;
+&lt;h4 id="toc_2"&gt;automark.VisualStudio/Util/Zip.cs&lt;/h4&gt;
 
 &lt;p&gt;This is a helper class using &lt;code&gt;ZipPackage&lt;/code&gt; to support&lt;/p&gt;
 
@@ -131,9 +129,9 @@ Zip.ZipFile(tempExportZip, tempExport);
  }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h2 id="toc_4"&gt;Sending mail&lt;/h2&gt;
+&lt;h2 id="toc_3"&gt;Sending mail&lt;/h2&gt;
 
-&lt;h4 id="toc_5"&gt;automark.VisualStudio/Util/Mail.cs&lt;/h4&gt;
+&lt;h4 id="toc_4"&gt;automark.VisualStudio/Util/Mail.cs&lt;/h4&gt;
 
 &lt;p&gt;A helper class for using the &lt;a href="http://msdn.microsoft.com/en-us/library/aa142548(v=exchg.65"&gt;MAPI api&lt;/a&gt;.aspx) for sending an email with Windows default mail client.  Also see this &lt;a href="http://stackoverflow.com/questions/6753008/opening-default-e-mail-program-with-attachment-c"&gt;Stack Overflow Question&lt;/a&gt;.&lt;/p&gt;
 
@@ -692,7 +690,7 @@ namespace ninlabs.automark.VisualStudio.Util
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h4 id="toc_6"&gt;automark.VisualStudio/automark.VisualStudioPackage.cs&lt;/h4&gt;
+&lt;h4 id="toc_5"&gt;automark.VisualStudio/automark.VisualStudioPackage.cs&lt;/h4&gt;
 
 &lt;p&gt;Let&amp;#39;s send the message!  As a back-up, we can use the &lt;code&gt;mailto:&lt;/code&gt; protocol if the MAPI api fails.  But we have to access to user to manually attach the zip file.&lt;/p&gt;
 
@@ -723,7 +721,7 @@ catch (Exception ex)
 }
 &lt;/code&gt;&lt;/pre&gt;
 
-&lt;h2 id="toc_7"&gt;Conclusion&lt;/h2&gt;
+&lt;h2 id="toc_6"&gt;Conclusion&lt;/h2&gt;
 
 &lt;p&gt;Reducing friction to feedback helps us get better data. There are some nice ways to extend this.  For example, automatically take a screenshot of buggy behavior and send it over email.  Or file a bug report to github, etc.&lt;/p&gt;
 </description>

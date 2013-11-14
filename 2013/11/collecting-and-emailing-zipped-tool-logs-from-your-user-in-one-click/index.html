@@ -14,6 +14,7 @@
     <!-- Le styles -->
 <link href='/articles/assets/stylesheets/bootstrap.min-88238289010db19359d2181e634e95cd.css' type='text/css' rel='stylesheet' media='all'>
 <link href='/articles/assets/stylesheets/style-e81fa375b231bedf6cb2dbc6653570cc.css' type='text/css' rel='stylesheet' media='all'>
+<link href='/articles/assets/stylesheets/diff-colorize-869a53ec090fceb635b615cc3c3775d3.css' type='text/css' rel='stylesheet' media='all'>
     <!-- Le fav and touch icons -->
   <!-- Update these with your own images
     <link rel="shortcut icon" href="images/favicon.ico">
@@ -21,7 +22,15 @@
     <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
     <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
   -->
-  </head>
+
+<!--<link href="https://cdnjs.cloudflare.com/ajax/libs/prettify/r224/prettify.css" type="text/css" rel="stylesheet" />-->
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js">
+</script> 
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prettify/r224/prettify.js">
+</script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js">
+</script>
+<script src='/articles/assets/javascripts/diff-colorize-6680254fbb98f9d09f9ec1c9806159dc.js'></script>  </head>
 
   <body>
 
@@ -58,17 +67,15 @@
       <span>2013-11-14</strong>
     </div>
     <div class="content">
-      <h1 id="toc_0">Collecting and emailing zipped tool logs from your user in one click</h1>
-
-<p>Congratulations your tool has users!  But now you are getting bug reports or issues only happening on their machine.  </p>
+      <p>Congratulations your tool has users!  But now you are getting bug reports or issues only happening on their machine.  </p>
 
 <p>Unfortunately, very few developers will have the time or patience to send poke around or follow instructions for finding your debugging output and sending it to you.  </p>
 
 <p>This post describes a simple way to reduce the friction just a little bit by zipping up your tool logs, opens an email message, and attaches the zip to the email.  From the user&#39;s perspective, this opens up their default email client (e.g. Outlook) addressed to you, with the file attached and a body explaining the tool logs and where they can see the file if needed.  Then, they just have to click send.</p>
 
-<h2 id="toc_1">Zipping a file</h2>
+<h2 id="toc_0">Zipping a file</h2>
 
-<h4 id="toc_2">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+<h4 id="toc_1">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
 
 <p>First, setup things on disk. <code>builder</code> is a StringBuilder that contains the exported contents.  <code>tempExport</code> is the file we want to zip, as <code>tempExportZip</code>.</p>
 
@@ -86,7 +93,7 @@ System.IO.File.WriteAllText(tempExport, builder.ToString());
 Zip.ZipFile(tempExportZip, tempExport);
 </code></pre>
 
-<h4 id="toc_3">automark.VisualStudio/Util/Zip.cs</h4>
+<h4 id="toc_2">automark.VisualStudio/Util/Zip.cs</h4>
 
 <p>This is a helper class using <code>ZipPackage</code> to support</p>
 
@@ -120,9 +127,9 @@ Zip.ZipFile(tempExportZip, tempExport);
  }
 </code></pre>
 
-<h2 id="toc_4">Sending mail</h2>
+<h2 id="toc_3">Sending mail</h2>
 
-<h4 id="toc_5">automark.VisualStudio/Util/Mail.cs</h4>
+<h4 id="toc_4">automark.VisualStudio/Util/Mail.cs</h4>
 
 <p>A helper class for using the <a href="http://msdn.microsoft.com/en-us/library/aa142548(v=exchg.65">MAPI api</a>.aspx) for sending an email with Windows default mail client.  Also see this <a href="http://stackoverflow.com/questions/6753008/opening-default-e-mail-program-with-attachment-c">Stack Overflow Question</a>.</p>
 
@@ -681,7 +688,7 @@ namespace ninlabs.automark.VisualStudio.Util
 }
 </code></pre>
 
-<h4 id="toc_6">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+<h4 id="toc_5">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
 
 <p>Let&#39;s send the message!  As a back-up, we can use the <code>mailto:</code> protocol if the MAPI api fails.  But we have to access to user to manually attach the zip file.</p>
 
@@ -712,7 +719,7 @@ catch (Exception ex)
 }
 </code></pre>
 
-<h2 id="toc_7">Conclusion</h2>
+<h2 id="toc_6">Conclusion</h2>
 
 <p>Reducing friction to feedback helps us get better data. There are some nice ways to extend this.  For example, automatically take a screenshot of buggy behavior and send it over email.  Or file a bug report to github, etc.</p>
 

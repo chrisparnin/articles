@@ -89,17 +89,15 @@
         <h3 class="title"><a href="/articles/2013/11/collecting-and-emailing-zipped-tool-logs-from-your-user-in-one-click">Collecting and emailing zipped tool logs from your user in one click</a> <span class="date">2013-11-14</span></h3>
 
         <div class="summary ellipsis">
-<h1 id="toc_0">Collecting and emailing zipped tool logs from your user in one click</h1>
-
 <p>Congratulations your tool has users!  But now you are getting bug reports or issues only happening on their machine.  </p>
 
 <p>Unfortunately, very few developers will have the time or patience to send poke around or follow instructions for finding your debugging output and sending it to you.  </p>
 
 <p>This post describes a simple way to reduce the friction just a little bit by zipping up your tool logs, opens an email message, and attaches the zip to the email.  From the user's perspective, this opens up their default email client (e.g. Outlook) addressed to you, with the file attached and a body explaining the tool logs and where they can see the file if needed.  Then, they just have to click send.</p>
 
-<h2 id="toc_1">Zipping a file</h2>
+<h2 id="toc_0">Zipping a file</h2>
 
-<h4 id="toc_2">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+<h4 id="toc_1">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
 
 <p>First, setup things on disk. <code>builder</code> is a StringBuilder that contains the exported contents.  <code>tempExport</code> is the file we want to zip, as <code>tempExportZip</code>.</p>
 
