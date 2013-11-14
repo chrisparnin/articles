@@ -67,11 +67,11 @@
       <span>2013-11-14</strong>
     </div>
     <div class="content">
-      <p>Congratulations your tool has users!  But now you are getting bug reports or issues only happening on their machine.  </p>
+      <p>Congratulations, your tool has users!  But <em>now</em> complaints are pouring in.
+Unfortunately, very few developers will have the time or patience to send poke around or follow instructions for finding your debugging output to help you figure things out.</p>
 
-<p>Unfortunately, very few developers will have the time or patience to send poke around or follow instructions for finding your debugging output and sending it to you.  </p>
-
-<p>This post describes a simple way to reduce the friction just a little bit by zipping up your tool logs, opens an email message, and attaches the zip to the email.  From the user&#39;s perspective, this opens up their default email client (e.g. Outlook) addressed to you, with the file attached and a body explaining the tool logs and where they can see the file if needed.  Then, they just have to click send.</p>
+<p>With a single click, the following code opens up a user&#39;s default email client (e.g. Outlook) addressed to you, with the file attached and a body explaining the data being sent and an option to see it.  Then, they just have to click send.
+There are no third party dependencies.</p>
 
 <h2 id="toc_0">Zipping a file</h2>
 
@@ -95,7 +95,7 @@ Zip.ZipFile(tempExportZip, tempExport);
 
 <h4 id="toc_2">automark.VisualStudio/Util/Zip.cs</h4>
 
-<p>This is a helper class using <code>ZipPackage</code> in .NET 4.0 to zip files.  There are better options (<code>ZipFile</code>) if you only have to support .NET 4.5.</p>
+<p>This is a helper class using <code>ZipPackage</code> in .NET 4.0 to zip files.  There are better options (<code>ZipFile</code>) if you only have to support .NET 4.5. <strong>No third party</strong> dependencies!</p>
 
 <pre><code> using System.IO;
  using System.IO.Packaging;
@@ -129,9 +129,49 @@ Zip.ZipFile(tempExportZip, tempExport);
 
 <h2 id="toc_3">Sending mail</h2>
 
-<h4 id="toc_4">automark.VisualStudio/Util/Mail.cs</h4>
+<p>Using the <a href="http://msdn.microsoft.com/en-us/library/aa142548(v=exchg.65).aspx">MAPI api</a>, we can automatically attach an file and open a new email message in Window&#39;s default mail client.  The <code>MapiMailMessage</code> helper class is shown at the end of the post.</p>
 
-<p>A helper class for using the <a href="http://msdn.microsoft.com/en-us/library/aa142548(v=exchg.65">MAPI api</a>.aspx) for sending an email with Windows default mail client.  Also see this <a href="http://stackoverflow.com/questions/6753008/opening-default-e-mail-program-with-attachment-c">Stack Overflow Question</a>.</p>
+<h4 id="toc_4">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
+
+<p>Let&#39;s send the message!  As a back-up, we can use the <code>mailto:</code> protocol if the MAPI api fails.  But we have to ask the user to manually find and attach the zip file.</p>
+
+<pre><code>bool triedBackup = false;
+try
+{
+    MapiMailMessage message = new MapiMailMessage(&quot;Automark export&quot;, &quot;This information includes the automark usage log....  This usage info will help in testing and improving the tool. You can review the exported info in &quot; + tempExport + &quot;  \nThanks!&quot;);
+    message.Recipients.Add(&quot;me@gmail.com&quot;);
+    message.Files.Add(tempExportZip);
+    message.OnDone += (success) =&gt;
+    {
+        if (!success)
+        {
+            triedBackup = true;
+            string msg = @&quot;mailto:me@gmail.com&amp;subject=Automark export&amp;body=Please attach {0} and send.&quot;;
+            System.Diagnostics.Process.Start(string.Format(msg, tempExportZip));
+        }
+    };
+    message.ShowDialog();
+}
+catch (Exception ex)
+{
+    if (!triedBackup)
+    {
+        string msg = @&quot;mailto:me@gmail.com&amp;subject=Automark export&amp;body=Please attach {0} and send.&quot;;
+        System.Diagnostics.Process.Start(string.Format(msg, tempExportZip));
+    }
+}
+</code></pre>
+
+<h2 id="toc_5">Conclusion</h2>
+
+<p>Reducing friction to feedback helps us get better data. There are some nice ways to extend this.  For example, automatically take a screenshot of buggy behavior and send it over email.  Or file a bug report to github, etc.</p>
+
+<h2 id="toc_6">Appendix - MAPI Helper class</h2>
+
+<p>Helper class for using <code>PInvoke</code> to access MAPI windows api.
+Also see this <a href="http://stackoverflow.com/questions/6753008/opening-default-e-mail-program-with-attachment-c">Stack Overflow Question</a>.</p>
+
+<h4 id="toc_7">automark.VisualStudio/Util/Mail.cs</h4>
 
 <pre><code>using System;
 using System.Collections;
@@ -687,41 +727,6 @@ namespace ninlabs.automark.VisualStudio.Util
     }
 }
 </code></pre>
-
-<h4 id="toc_5">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
-
-<p>Let&#39;s send the message!  As a back-up, we can use the <code>mailto:</code> protocol if the MAPI api fails.  But we have to access to user to manually attach the zip file.</p>
-
-<pre><code>bool triedBackup = false;
-try
-{
-    MapiMailMessage message = new MapiMailMessage(&quot;Automark export&quot;, &quot;This information includes the automark usage log....  This usage info will help in testing and improving the tool. You can review the exported info in &quot; + tempExport + &quot;  \nThanks!&quot;);
-    message.Recipients.Add(&quot;me@gmail.com&quot;);
-    message.Files.Add(tempExportZip);
-    message.OnDone += (success) =&gt;
-    {
-        if (!success)
-        {
-            triedBackup = true;
-            string msg = @&quot;mailto:me@gmail.com&amp;subject=Automark export&amp;body=Please attach {0} and send.&quot;;
-            System.Diagnostics.Process.Start(string.Format(msg, tempExportZip));
-        }
-    };
-    message.ShowDialog();
-}
-catch (Exception ex)
-{
-    if (!triedBackup)
-    {
-        string msg = @&quot;mailto:me@gmail.com&amp;subject=Automark export&amp;body=Please attach {0} and send.&quot;;
-        System.Diagnostics.Process.Start(string.Format(msg, tempExportZip));
-    }
-}
-</code></pre>
-
-<h2 id="toc_6">Conclusion</h2>
-
-<p>Reducing friction to feedback helps us get better data. There are some nice ways to extend this.  For example, automatically take a screenshot of buggy behavior and send it over email.  Or file a bug report to github, etc.</p>
 
     </div>
     <ul class="tag_box inline">
