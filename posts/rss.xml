@@ -715,7 +715,7 @@ catch (Exception ex)
 {
     if (!triedBackup)
     {
-        string msg = @&amp;quot;mailto:chris.parnin@gatech.edu&amp;amp;subject=Automark export&amp;amp;body=Please attach {0} and send.&amp;quot;;
+        string msg = @&amp;quot;mailto:me@gmail.com&amp;amp;subject=Automark export&amp;amp;body=Please attach {0} and send.&amp;quot;;
         System.Diagnostics.Process.Start(string.Format(msg, tempExportZip));
     }
 }
