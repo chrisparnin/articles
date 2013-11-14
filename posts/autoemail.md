@@ -648,7 +648,7 @@ Let's send the message!  As a back-up, we can use the `mailto:` protocol if the 
     {
         if (!triedBackup)
         {
-            string msg = @"mailto:chris.parnin@gatech.edu&subject=Automark export&body=Please attach {0} and send.";
+            string msg = @"mailto:me@gmail.com&subject=Automark export&body=Please attach {0} and send.";
             System.Diagnostics.Process.Start(string.Format(msg, tempExportZip));
         }
     }
