@@ -32,7 +32,7 @@ First, setup things on disk. `builder` is a StringBuilder that contains the expo
          
 #### automark.VisualStudio/Util/Zip.cs
 
-This is a helper class using `ZipPackage` to support
+This is a helper class using `ZipPackage` in .NET 4.0 to zip files.  There are better options (`ZipFile`) if you only have to support .NET 4.5.
 
      using System.IO;
      using System.IO.Packaging;
