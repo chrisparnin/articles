@@ -97,7 +97,7 @@ Zip.ZipFile(tempExportZip, tempExport);
 
 &lt;h4 id="toc_2"&gt;automark.VisualStudio/Util/Zip.cs&lt;/h4&gt;
 
-&lt;p&gt;This is a helper class using &lt;code&gt;ZipPackage&lt;/code&gt; to support&lt;/p&gt;
+&lt;p&gt;This is a helper class using &lt;code&gt;ZipPackage&lt;/code&gt; in .NET 4.0 to zip files.  There are better options (&lt;code&gt;ZipFile&lt;/code&gt;) if you only have to support .NET 4.5.&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt; using System.IO;
  using System.IO.Packaging;
