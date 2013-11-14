@@ -5,11 +5,11 @@ description:
 tags: [automark,tools]
 layout: "posts-narrative"
 ---
-Congratulations your tool has users!  But now you are getting bug reports or issues only happening on their machine.  
+Congratulations, your tool has users!  But *now* complaints are pouring in.
+Unfortunately, very few developers will have the time or patience to send poke around or follow instructions for finding your debugging output to help you figure things out.
 
-Unfortunately, very few developers will have the time or patience to send poke around or follow instructions for finding your debugging output and sending it to you.  
-
-This post describes a simple way to reduce the friction just a little bit by zipping up your tool logs, opens an email message, and attaches the zip to the email.  From the user's perspective, this opens up their default email client (e.g. Outlook) addressed to you, with the file attached and a body explaining the tool logs and where they can see the file if needed.  Then, they just have to click send.
+With a single click, the following code opens up a user's default email client (e.g. Outlook) addressed to you, with the file attached and a body explaining the data being sent and an option to see it.  Then, they just have to click send.
+There are no third party dependencies.
 
 ## Zipping a file
     
@@ -32,7 +32,7 @@ First, setup things on disk. `builder` is a StringBuilder that contains the expo
          
 #### automark.VisualStudio/Util/Zip.cs
 
-This is a helper class using `ZipPackage` in .NET 4.0 to zip files.  There are better options (`ZipFile`) if you only have to support .NET 4.5.
+This is a helper class using `ZipPackage` in .NET 4.0 to zip files.  There are better options (`ZipFile`) if you only have to support .NET 4.5. **No third party** dependencies!
 
      using System.IO;
      using System.IO.Packaging;
@@ -65,9 +65,49 @@ This is a helper class using `ZipPackage` in .NET 4.0 to zip files.  There are b
 
 ## Sending mail
 
-#### automark.VisualStudio/Util/Mail.cs
+Using the [MAPI api](http://msdn.microsoft.com/en-us/library/aa142548\(v=exchg.65\).aspx), we can automatically attach an file and open a new email message in Window's default mail client.  The `MapiMailMessage` helper class is shown at the end of the post.
 
-A helper class for using the [MAPI api](http://msdn.microsoft.com/en-us/library/aa142548(v=exchg.65).aspx) for sending an email with Windows default mail client.  Also see this [Stack Overflow Question](http://stackoverflow.com/questions/6753008/opening-default-e-mail-program-with-attachment-c).
+#### automark.VisualStudio/automark.VisualStudioPackage.cs
+
+Let's send the message!  As a back-up, we can use the `mailto:` protocol if the MAPI api fails.  But we have to ask the user to manually find and attach the zip file.
+
+    bool triedBackup = false;
+    try
+    {
+        MapiMailMessage message = new MapiMailMessage("Automark export", "This information includes the automark usage log....  This usage info will help in testing and improving the tool. You can review the exported info in " + tempExport + "  \nThanks!");
+        message.Recipients.Add("me@gmail.com");
+        message.Files.Add(tempExportZip);
+        message.OnDone += (success) =>
+        {
+            if (!success)
+            {
+                triedBackup = true;
+                string msg = @"mailto:me@gmail.com&subject=Automark export&body=Please attach {0} and send.";
+                System.Diagnostics.Process.Start(string.Format(msg, tempExportZip));
+            }
+        };
+        message.ShowDialog();
+    }
+    catch (Exception ex)
+    {
+        if (!triedBackup)
+        {
+            string msg = @"mailto:me@gmail.com&subject=Automark export&body=Please attach {0} and send.";
+            System.Diagnostics.Process.Start(string.Format(msg, tempExportZip));
+        }
+    }
+
+## Conclusion
+
+Reducing friction to feedback helps us get better data. There are some nice ways to extend this.  For example, automatically take a screenshot of buggy behavior and send it over email.  Or file a bug report to github, etc.
+
+
+## Appendix - MAPI Helper class
+
+Helper class for using `PInvoke` to access MAPI windows api.
+Also see this [Stack Overflow Question](http://stackoverflow.com/questions/6753008/opening-default-e-mail-program-with-attachment-c).
+
+#### automark.VisualStudio/Util/Mail.cs
 
 	using System;
 	using System.Collections;
@@ -623,37 +663,3 @@ A helper class for using the [MAPI api](http://msdn.microsoft.com/en-us/library/
 	    }
 	}
     
-#### automark.VisualStudio/automark.VisualStudioPackage.cs
-
-Let's send the message!  As a back-up, we can use the `mailto:` protocol if the MAPI api fails.  But we have to access to user to manually attach the zip file.
-
-    bool triedBackup = false;
-    try
-    {
-        MapiMailMessage message = new MapiMailMessage("Automark export", "This information includes the automark usage log....  This usage info will help in testing and improving the tool. You can review the exported info in " + tempExport + "  \nThanks!");
-        message.Recipients.Add("me@gmail.com");
-        message.Files.Add(tempExportZip);
-        message.OnDone += (success) =>
-        {
-            if (!success)
-            {
-                triedBackup = true;
-                string msg = @"mailto:me@gmail.com&subject=Automark export&body=Please attach {0} and send.";
-                System.Diagnostics.Process.Start(string.Format(msg, tempExportZip));
-            }
-        };
-        message.ShowDialog();
-    }
-    catch (Exception ex)
-    {
-        if (!triedBackup)
-        {
-            string msg = @"mailto:me@gmail.com&subject=Automark export&body=Please attach {0} and send.";
-            System.Diagnostics.Process.Start(string.Format(msg, tempExportZip));
-        }
-    }
-
-## Conclusion
-
-Reducing friction to feedback helps us get better data. There are some nice ways to extend this.  For example, automatically take a screenshot of buggy behavior and send it over email.  Or file a bug report to github, etc.
-
