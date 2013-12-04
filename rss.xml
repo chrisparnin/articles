@@ -4,7 +4,7 @@
     <title>Chris Parnin</title>
     <description>Chris Parnin</description>
     <link>http://chrisparnin.github.io</link>
-    <pubDate>2013-11-14</pubDate>
+    <pubDate>2013-12-03</pubDate>
     <item>
       <title>About</title>
       <link>http://chrisparnin.github.io/articles/about</link>
@@ -22,10 +22,6 @@
       <link>http://chrisparnin.github.io/articles/archive</link>
       <description>
   &lt;h2&gt;2013&lt;/h2&gt;
-    &lt;h3&gt;May&lt;/h3&gt;
-    &lt;ul&gt;
-      &lt;li&gt;&lt;span&gt;2013-05-20&lt;/span&gt; &amp;raquo; &lt;a href="/articles/2013/05/api-diaries-twilio"&gt;Api Diaries - Twilio&lt;/a&gt;&lt;/li&gt;
-    &lt;/ul&gt;
     &lt;h3&gt;November&lt;/h3&gt;
     &lt;ul&gt;
       &lt;li&gt;&lt;span&gt;2013-11-14&lt;/span&gt; &amp;raquo; &lt;a href="/articles/2013/11/collecting-and-emailing-zipped-tool-logs-from-your-user-in-one-click"&gt;Collecting and emailing zipped tool logs from your user in one click&lt;/a&gt;&lt;/li&gt;
@@ -36,9 +32,13 @@
     &lt;/ul&gt;
     &lt;h3&gt;September&lt;/h3&gt;
     &lt;ul&gt;
+      &lt;li&gt;&lt;span&gt;2013-09-27&lt;/span&gt; &amp;raquo; &lt;a href="/articles/2013/09/using-tagging-and-adornments-for-better-todos-in-visual-studio"&gt;Using Tagging and Adornments for better TODOs in Visual Studio.&lt;/a&gt;&lt;/li&gt;
       &lt;li&gt;&lt;span&gt;2013-09-17&lt;/span&gt; &amp;raquo; &lt;a href="/articles/2013/09/deploying-native-binaries-with-visual-studio-extensions"&gt;Deploying native binaries with Visual Studio extensions&lt;/a&gt;&lt;/li&gt;
       &lt;li&gt;&lt;span&gt;2013-09-05&lt;/span&gt; &amp;raquo; &lt;a href="/articles/2013/09/parse-git-log-output-in-c"&gt;Parse git log output in C#&lt;/a&gt;&lt;/li&gt;
-      &lt;li&gt;&lt;span&gt;2013-09-27&lt;/span&gt; &amp;raquo; &lt;a href="/articles/2013/09/using-tagging-and-adornments-for-better-todos-in-visual-studio"&gt;Using Tagging and Adornments for better TODOs in Visual Studio.&lt;/a&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+    &lt;h3&gt;May&lt;/h3&gt;
+    &lt;ul&gt;
+      &lt;li&gt;&lt;span&gt;2013-05-20&lt;/span&gt; &amp;raquo; &lt;a href="/articles/2013/05/api-diaries-twilio"&gt;Api Diaries - Twilio&lt;/a&gt;&lt;/li&gt;
     &lt;/ul&gt;
     &lt;h3&gt;April&lt;/h3&gt;
     &lt;ul&gt;

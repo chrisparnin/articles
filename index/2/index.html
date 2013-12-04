@@ -53,32 +53,31 @@
         <h3 class="title"><a href="/articles">articles</a> <span class="date"></span></h3>
 
         <div class="summary ellipsis">
-<p><a href="http://www.twilio.com/">Twilio</a> makes telephony dead simple for developers.  A developer should be able to do cool things with their API, like sending text messages and setting up conference calls in under 5 minutes.  Such a company must live or die on API design.</p>
+<p>Congratulations, your tool has users!  But <em>now</em> complaints are pouring in.
+Unfortunately, very few developers will have the time or patience to send poke around or follow instructions for finding your debugging output to help you figure things out.</p>
 
-<p>I was very fortunate to speak with <a href="https://twitter.com/jf">Joel Franusic</a> to learn how Twilio engages and understands developers when building their API. The following is a based on our conversation:</p>
+<p>With a single click, the following code opens up a user's default email client (e.g. Outlook) addressed to you, with the file attached and a body explaining the data being sent and an option to see it.  Then, they just have to click send.
+There are no third party dependencies.</p>
 
-<h3 id="toc_0">How do they know how to get Api Design right?</h3>
+<h2 id="toc_0">Zipping a file</h2>
 
-<h4 id="toc_1">Monitoring channels</h4>
+<h4 id="toc_1">automark.VisualStudio/automark.VisualStudioPackage.cs</h4>
 
-<blockquote>
-<p>"We go where we are talked about"</p>
-</blockquote>
+<p>First, setup things on disk. <code>builder</code> is a StringBuilder that contains the exported contents.  <code>tempExport</code> is the file we want to zip, as <code>tempExportZip</code>.</p>
 
-<ul>
-<li><a href="http://forum.twilio.com/twilio">getsatisfaction.com</a></li>
-<li><a href="http://stackoverflow.com/questions/tagged/twilio">Stack Overflow</a></li>
-<li><a href="https://twitter.com/search/realtime?q=%23twilio">twitter</a></li>
-<li><a href="https://www.hnsearch.com/search#request/all&amp;q=twilio">Hacker News</a></li>
-<li>email (lots)</li>
-</ul>
-<p>Example tweets:</p>
+<pre><code>var time = DateTime.Now;
+string tempExport = System.IO.Path.Combine(m_basePath, "exports", string.Format("export-{0:yyyy-MM-dd-hh-mm-tt}.export", time));
+string tempExportZip = System.IO.Path.Combine(m_basePath, "exports", string.Format("export-{0:yyyy-MM-dd-hh-mm-tt}.zip", time));
 
-<blockquote>
-<p>If any #nodejs #twilio guys could help debug <a href="https://gist.github.com/1314454">https://gist.github.com/1314454</a> and why it's saying not authenticated when I do the request</p>
+var parent = System.IO.Path.GetDirectoryName(tempExport);
+if (!System.IO.Directory.Exists(parent))
+{
+    System.IO.Directory.CreateDirectory(parent);
+}
 
-<p>.@twilio Why can't I send an SMS with the words "need to cancel" in it? I keep getting this error: <a href="http://www.twilio.com/docs/errors/21618">http://www.twilio.com/docs/errors/21618</a> #janky</p>
-</blockquote>
+System.IO.File.WriteAllText(tempExport, builder.ToString());
+Zip.ZipFile(tempExportZip, tempExport);
+</code></pre>
 </div>
 
         <div class="more">
